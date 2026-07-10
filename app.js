@@ -2,7 +2,7 @@ import { firebaseConfig } from "./firebase-config.js";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, getDocs, getDoc, setDoc, doc, updateDoc, deleteDoc, query, orderBy
+  getFirestore, enableIndexedDbPersistence, collection, addDoc, getDocs, getDoc, setDoc, doc, updateDoc, deleteDoc, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut,
@@ -19,8 +19,16 @@ const PALETAS = {
   palida:  { fondo: "var(--crema)", precio: "var(--ebony)",      acento: "var(--terracota)" }
 };
 
+const TITULO_COLORES = {
+  carbon: "var(--carbon)", oliva: "var(--oliva)", camel: "var(--camel)",
+  terracota: "var(--terracota)", ebony: "var(--ebony)", brownsugar: "var(--brownsugar)"
+};
+
+const TITULO_TAMANOS = { chico: "30px", mediano: "42px", grande: "54px" };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+enableIndexedDbPersistence(db).catch(() => {});
 const auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence).catch(() => {});
 
@@ -73,16 +81,37 @@ function aplicarPaleta(nombre) {
 }
 
 function aplicarConfigUI() {
-  document.getElementById("txtNombre").textContent = configSitio.nombre || "podriausarlo";
   document.getElementById("txtTagline").textContent = configSitio.tagline || "ropa usada, vintage, excelente estado";
   document.getElementById("txtCiudad").textContent = configSitio.ciudad || "La Plata, Buenos Aires";
   document.title = (configSitio.nombre || "podriausarlo");
   aplicarPaleta(configSitio.paleta || "calida");
 
+  document.documentElement.style.setProperty("--titulo-size", TITULO_TAMANOS[configSitio.tamanoTitulo] || TITULO_TAMANOS.mediano);
+  document.documentElement.style.setProperty("--titulo-color", TITULO_COLORES[configSitio.colorTitulo] || TITULO_COLORES.carbon);
+
+  const txtNombre = document.getElementById("txtNombre");
+  const logoImg = document.getElementById("logoImg");
+  if (configSitio.logo) {
+    logoImg.src = configSitio.logo;
+    logoImg.style.display = "block";
+    txtNombre.style.display = "none";
+  } else {
+    logoImg.style.display = "none";
+    txtNombre.style.display = "block";
+    txtNombre.textContent = configSitio.nombre || "podriausarlo";
+  }
+
+  document.body.className = document.body.className.replace(/fondo-\S+/g, "").trim();
+  const fondo = configSitio.fondo || "liso";
+  if (fondo !== "liso") document.body.classList.add("fondo-" + fondo);
+
   document.getElementById("cfg_nombre").value = configSitio.nombre || "";
   document.getElementById("cfg_tagline").value = configSitio.tagline || "";
   document.getElementById("cfg_ciudad").value = configSitio.ciudad || "";
   document.getElementById("cfg_paleta").value = configSitio.paleta || "calida";
+  document.getElementById("cfg_tamano_titulo").value = configSitio.tamanoTitulo || "mediano";
+  document.getElementById("cfg_color_titulo").value = configSitio.colorTitulo || "carbon";
+  document.getElementById("cfg_fondo").value = fondo;
 }
 
 async function cargarConfig() {
@@ -94,21 +123,44 @@ async function cargarConfig() {
 }
 
 async function guardarConfiguracion() {
+  const logoInput = document.getElementById("cfg_logo");
+  let logoBase64 = configSitio.logo || null;
+  if (logoInput.files && logoInput.files[0]) {
+    logoBase64 = await redimensionarImagen(logoInput.files[0], 400, 0.8);
+  }
+
   configSitio = {
     nombre: document.getElementById("cfg_nombre").value.trim(),
     tagline: document.getElementById("cfg_tagline").value.trim(),
     ciudad: document.getElementById("cfg_ciudad").value.trim(),
-    paleta: document.getElementById("cfg_paleta").value
+    paleta: document.getElementById("cfg_paleta").value,
+    tamanoTitulo: document.getElementById("cfg_tamano_titulo").value,
+    colorTitulo: document.getElementById("cfg_color_titulo").value,
+    fondo: document.getElementById("cfg_fondo").value,
+    logo: logoBase64
   };
   await setDoc(doc(db, "config", "sitio"), configSitio);
+  logoInput.value = "";
   aplicarConfigUI();
   const aviso = document.getElementById("avisoConfig");
   aviso.style.display = "block";
   aviso.textContent = "Configuración guardada.";
 }
 
+async function quitarLogo() {
+  configSitio.logo = null;
+  await setDoc(doc(db, "config", "sitio"), configSitio);
+  aplicarConfigUI();
+  const aviso = document.getElementById("avisoConfig");
+  aviso.style.display = "block";
+  aviso.textContent = "Logo quitado, volviste al nombre de texto.";
+}
+
 // ---------- Catálogo (Firestore) ----------
 async function cargarCatalogo() {
+  const vacio = document.getElementById("vacio");
+  vacio.style.display = "block";
+  vacio.textContent = "Cargando catálogo...";
   const q = query(collection(db, "prendas"), orderBy("creado", "desc"));
   const snap = await getDocs(q);
   prendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -242,7 +294,7 @@ function cardFotoHTML(p) {
   const fotos = p.fotos || [];
   if (fotos.length === 0) return iconoPercha();
   const idx = (fotoIndices[p.id] || 0) % fotos.length;
-  let html = `<img src="${fotos[idx]}" alt="${p.nombre}">`;
+  let html = `<img src="${fotos[idx]}" alt="${p.nombre}" loading="lazy">`;
   if (fotos.length > 1) {
     html += `<div class="dots">` + fotos.map((_, i) => `<span class="dot ${i === idx ? 'activo' : ''}"></span>`).join("") + `</div>`;
   }
@@ -255,6 +307,7 @@ function renderGrid() {
   if (prendas.length === 0) {
     grid.innerHTML = "";
     vacio.style.display = "block";
+    vacio.textContent = "Todavía no hay prendas cargadas.";
     return;
   }
   vacio.style.display = "none";
@@ -431,6 +484,7 @@ document.getElementById("btnFlechaDer").addEventListener("click", lightboxSiguie
 document.getElementById("btnGuardarPrenda").addEventListener("click", guardarPrenda);
 document.getElementById("btnCancelarEdicion").addEventListener("click", cancelarEdicion);
 document.getElementById("btnGuardarConfig").addEventListener("click", guardarConfiguracion);
+document.getElementById("btnQuitarLogo").addEventListener("click", quitarLogo);
 document.getElementById("btnVerVidriera").addEventListener("click", mostrarVidriera);
 document.getElementById("btnCerrarSesion").addEventListener("click", () => { signOut(auth); mostrarVidriera(); });
 

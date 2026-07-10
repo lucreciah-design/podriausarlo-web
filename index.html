@@ -6,6 +6,8 @@
 <title>podriausarlo — ropa usada, vintage, excelente estado</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://firestore.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -13,6 +15,7 @@
 
 <header>
   <button id="btnAdminIcono" class="icono-admin" aria-label="Panel de administración" title="Panel de administración">&#9881;</button>
+  <img id="logoImg" class="logo-img" src="" alt="" style="display:none;">
   <h1 class="brand" id="txtNombre">podriausarlo</h1>
   <p class="tagline" id="txtTagline">ropa usada, vintage, excelente estado</p>
   <p class="location" id="txtCiudad">La Plata, Buenos Aires</p>
@@ -86,6 +89,45 @@
         <option value="palida">Pálida oliva (fondo crema)</option>
       </select>
     </div>
+
+    <div class="fila-doble">
+      <div class="campo">
+        <label for="cfg_tamano_titulo">Tamaño del título</label>
+        <select id="cfg_tamano_titulo">
+          <option value="chico">Chico</option>
+          <option value="mediano">Mediano (actual)</option>
+          <option value="grande">Grande</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="cfg_color_titulo">Color del título</label>
+        <select id="cfg_color_titulo">
+          <option value="carbon">Carbón (actual)</option>
+          <option value="oliva">Oliva</option>
+          <option value="camel">Camel</option>
+          <option value="terracota">Terracota</option>
+          <option value="ebony">Ebony</option>
+          <option value="brownsugar">Brown sugar</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="cfg_fondo">Fondo decorativo (aplica a toda la web)</label>
+      <select id="cfg_fondo">
+        <option value="liso">Liso, sin diseño</option>
+        <option value="hojas">Hojas</option>
+        <option value="enredadera1">Enredadera — tipo 1</option>
+        <option value="enredadera2">Enredadera — tipo 2</option>
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="cfg_logo">Logo (opcional, reemplaza el nombre de texto)</label>
+      <input type="file" id="cfg_logo" accept="image/*">
+      <button class="btn-accion btn-secundario" id="btnQuitarLogo" style="margin-top:8px;">Quitar logo y volver al texto</button>
+    </div>
+
     <button class="btn-accion btn-guardar" id="btnGuardarConfig">Guardar configuración</button>
     <div class="aviso" id="avisoConfig" style="display:none;"></div>
   </div>
