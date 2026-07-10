@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>podriausarlo — ropa usada, vintage, excelente estado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <button id="btnAdminIcono" class="icono-admin" aria-label="Panel de administración" title="Panel de administración">&#9881;</button>
+  <h1 class="brand">podriausarlo</h1>
+  <p class="tagline">ropa usada, vintage, excelente estado</p>
+  <p class="location">La Plata, Buenos Aires</p>
+</header>
+
+<div id="vidriera">
+  <main>
+    <div class="grid" id="grid"></div>
+    <p class="vacio" id="vacio" style="display:none;">Todavía no hay prendas cargadas.</p>
+  </main>
+</div>
+
+<!-- Lightbox de fotos ampliadas -->
+<div id="lightbox" class="overlay" style="display:none;">
+  <div class="lightbox-box">
+    <button class="cerrar" id="btnCerrarLightbox">&#10005;</button>
+    <button class="flecha izq" id="btnFlechaIzq">&#8249;</button>
+    <img id="lightboxImg" src="" alt="">
+    <button class="flecha der" id="btnFlechaDer">&#8250;</button>
+    <div class="dots" id="lightboxDots"></div>
+  </div>
+</div>
+
+<!-- Login del panel -->
+<div id="loginModal" class="overlay" style="display:none;">
+  <div class="login-box">
+    <button class="cerrar" id="btnCerrarLogin">&#10005;</button>
+    <h2>Panel de administración</h2>
+    <div class="campo">
+      <label for="loginEmail">Mail</label>
+      <input type="email" id="loginEmail">
+    </div>
+    <div class="campo">
+      <label for="loginPass">Contraseña</label>
+      <input type="password" id="loginPass">
+    </div>
+    <button class="btn-accion btn-guardar" id="btnIngresar">Ingresar</button>
+    <button class="btn-olvide" id="btnOlvide">¿Olvidaste tu contraseña?</button>
+    <p id="loginAviso" class="aviso" style="display:none;"></p>
+  </div>
+</div>
+
+<!-- Panel de carga (solo visible logueada) -->
+<div id="admin" style="display:none;">
+  <div class="modo-toggle">
+    <button id="btnCerrarSesion">Cerrar sesión y volver a la vidriera</button>
+  </div>
+
+  <div class="panel">
+    <h2>Cargar prenda nueva</h2>
+
+    <div class="campo">
+      <label for="f_nombre">Nombre corto</label>
+      <input type="text" id="f_nombre" placeholder="Tapado vintage 80/90">
+    </div>
+
+    <div class="fila-doble">
+      <div class="campo">
+        <label for="f_precio">Precio</label>
+        <input type="number" id="f_precio" placeholder="45000">
+      </div>
+      <div class="campo">
+        <label for="f_talle">Talle</label>
+        <input type="text" id="f_talle" placeholder="M">
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="f_descripcion">Descripción</label>
+      <textarea id="f_descripcion" placeholder="Excelente estado, lana gruesa, corte oversize."></textarea>
+    </div>
+
+    <div class="campo">
+      <label for="f_reel">Link al reel de Instagram</label>
+      <input type="url" id="f_reel" placeholder="https://instagram.com/reel/...">
+    </div>
+
+    <div class="campo">
+      <label for="f_foto">Fotos (hasta 4)</label>
+      <input type="file" id="f_foto" accept="image/*" multiple>
+    </div>
+
+    <button class="btn-accion btn-guardar" id="btnGuardarPrenda">Guardar prenda</button>
+    <div class="aviso" id="avisoGuardado"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Tu catálogo</h2>
+    <div id="listaAdmin"></div>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
