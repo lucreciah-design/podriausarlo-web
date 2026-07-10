@@ -13,9 +13,9 @@
 
 <header>
   <button id="btnAdminIcono" class="icono-admin" aria-label="Panel de administración" title="Panel de administración">&#9881;</button>
-  <h1 class="brand">podriausarlo</h1>
-  <p class="tagline">ropa usada, vintage, excelente estado</p>
-  <p class="location">La Plata, Buenos Aires</p>
+  <h1 class="brand" id="txtNombre">podriausarlo</h1>
+  <p class="tagline" id="txtTagline">ropa usada, vintage, excelente estado</p>
+  <p class="location" id="txtCiudad">La Plata, Buenos Aires</p>
 </header>
 
 <div id="vidriera">
@@ -27,8 +27,9 @@
 
 <!-- Lightbox de fotos ampliadas -->
 <div id="lightbox" class="overlay" style="display:none;">
-  <div class="lightbox-box">
+  <div class="lightbox-box" id="lightboxBox">
     <button class="cerrar" id="btnCerrarLightbox">&#10005;</button>
+    <button class="zoom-btn" id="btnZoom" title="Ampliar / achicar">&#128269;</button>
     <button class="flecha izq" id="btnFlechaIzq">&#8249;</button>
     <img id="lightboxImg" src="" alt="">
     <button class="flecha der" id="btnFlechaDer">&#8250;</button>
@@ -55,14 +56,42 @@
   </div>
 </div>
 
-<!-- Panel de carga (solo visible logueada) -->
+<!-- Panel de administración (solo visible logueada) -->
 <div id="admin" style="display:none;">
-  <div class="modo-toggle">
-    <button id="btnCerrarSesion">Cerrar sesión y volver a la vidriera</button>
+  <div class="modo-toggle modo-toggle-doble">
+    <button id="btnVerVidriera">Ver vidriera (seguís logueada)</button>
+    <button id="btnCerrarSesion">Cerrar sesión</button>
   </div>
 
   <div class="panel">
-    <h2>Cargar prenda nueva</h2>
+    <h2>Configuración del sitio</h2>
+
+    <div class="campo">
+      <label for="cfg_nombre">Nombre de la marca</label>
+      <input type="text" id="cfg_nombre" placeholder="podriausarlo">
+    </div>
+    <div class="campo">
+      <label for="cfg_tagline">Bajada / tagline</label>
+      <input type="text" id="cfg_tagline" placeholder="ropa usada, vintage, excelente estado">
+    </div>
+    <div class="campo">
+      <label for="cfg_ciudad">Ciudad</label>
+      <input type="text" id="cfg_ciudad" placeholder="La Plata, Buenos Aires">
+    </div>
+    <div class="campo">
+      <label for="cfg_paleta">Paleta de colores</label>
+      <select id="cfg_paleta">
+        <option value="calida">Cálida (fondo tan) — la actual</option>
+        <option value="durazno">Suave durazno (fondo flesh)</option>
+        <option value="palida">Pálida oliva (fondo crema)</option>
+      </select>
+    </div>
+    <button class="btn-accion btn-guardar" id="btnGuardarConfig">Guardar configuración</button>
+    <div class="aviso" id="avisoConfig" style="display:none;"></div>
+  </div>
+
+  <div class="panel">
+    <h2 id="tituloFormPrenda">Cargar prenda nueva</h2>
 
     <div class="campo">
       <label for="f_nombre">Nombre corto</label>
@@ -86,17 +115,28 @@
     </div>
 
     <div class="campo">
+      <label for="f_observaciones">Observaciones (ej. formas de pago, envío)</label>
+      <textarea id="f_observaciones" placeholder="Efectivo / Transferencia, envío gratis"></textarea>
+    </div>
+
+    <div class="campo">
       <label for="f_reel">Link al reel de Instagram</label>
       <input type="url" id="f_reel" placeholder="https://instagram.com/reel/...">
     </div>
 
+    <div class="campo" id="fotosExistentesCont" style="display:none;">
+      <label>Fotos actuales (podés reordenarlas o sacarlas)</label>
+      <div id="fotosExistentes" class="fotos-existentes"></div>
+    </div>
+
     <div class="campo">
-      <label for="f_foto">Fotos (hasta 4)</label>
+      <label for="f_foto" id="labelFotos">Fotos (hasta 4)</label>
       <input type="file" id="f_foto" accept="image/*" multiple>
     </div>
 
     <button class="btn-accion btn-guardar" id="btnGuardarPrenda">Guardar prenda</button>
-    <div class="aviso" id="avisoGuardado"></div>
+    <button class="btn-accion btn-secundario" id="btnCancelarEdicion" style="display:none; margin-top:8px; width:100%;">Cancelar edición</button>
+    <div class="aviso" id="avisoGuardado" style="display:none;"></div>
   </div>
 
   <div class="panel">

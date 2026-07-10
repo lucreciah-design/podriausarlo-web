@@ -35,6 +35,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if request.auth != null;
     }
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
   }
 }
 ```
