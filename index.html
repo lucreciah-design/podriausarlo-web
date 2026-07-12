@@ -9,7 +9,322 @@
 <link rel="preconnect" href="https://www.gstatic.com">
 <link rel="preconnect" href="https://firestore.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<style>
+:root {
+  /* ---- CONFIGURACIÓN DE MARCA: cambiar acá para reusar este sitio con otro rubro ---- */
+  --crema: #F2E9DB;
+  --crema-card: #FAF5EC;
+  --carbon: #2A2622;
+  --carbon-soft: #55504A;
+  --oliva: #6B6B4A;
+  --camel: #B58A5C;
+  --terracota: #A85C40;
+  --linea: rgba(42,38,34,0.12);
+  --tan2: #D7B391;
+
+  /* ---- Estas 5 cambian juntas según el tema elegido en el panel ---- */
+  --fondo: #F2E9DB;
+  --precio-bg: #B58A5C;
+  --acento: #B0714E;
+  --titulo-color: #5E604B;
+  --texto-sec: #55504A;
+  --titulo-size: 42px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background-color: var(--fondo);
+  color: var(--carbon);
+  font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-repeat: repeat;
+  transition: background-color 0.2s;
+}
+
+/* Texturas de los temas Follaje y Cabernet — Cálida no lleva ninguna */
+body.fondo-follaje {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cdefs%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='9'/%3E%3C/filter%3E%3C/defs%3E%3Cg filter='url(%23b)' fill='%233F4A34' opacity='0.35'%3E%3Cellipse cx='60' cy='50' rx='16' ry='38' transform='rotate(28 60 50)'/%3E%3Cellipse cx='120' cy='90' rx='14' ry='34' transform='rotate(-18 120 90)'/%3E%3Cellipse cx='40' cy='150' rx='15' ry='36' transform='rotate(40 40 150)'/%3E%3Cellipse cx='200' cy='60' rx='16' ry='38' transform='rotate(-25 200 60)'/%3E%3Cellipse cx='230' cy='180' rx='14' ry='34' transform='rotate(20 230 180)'/%3E%3Cellipse cx='150' cy='220' rx='15' ry='36' transform='rotate(-30 150 220)'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+body.fondo-cabernet {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cg fill='%2323222A' opacity='0.24'%3E%3Cpath d='M0,7 Q9,0 18,7 Q9,14 0,7' transform='translate(15,20) rotate(20)'/%3E%3Cpath d='M0,7 Q9,0 18,7 Q9,14 0,7' transform='translate(85,15) rotate(-35) scale(0.8)'/%3E%3Cpath d='M0,7 Q9,0 18,7 Q9,14 0,7' transform='translate(45,60) rotate(70) scale(1.15)'/%3E%3Cpath d='M0,7 Q9,0 18,7 Q9,14 0,7' transform='translate(100,85) rotate(-10) scale(0.7)'/%3E%3Cpath d='M0,7 Q9,0 18,7 Q9,14 0,7' transform='translate(20,105) rotate(50) scale(0.9)'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+header {
+  padding: 40px 20px 22px;
+  text-align: center;
+  position: relative;
+}
+
+.logo-img {
+  max-height: 64px;
+  max-width: 70%;
+  object-fit: contain;
+  margin-bottom: 6px;
+}
+
+.icono-admin {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--linea);
+  background: var(--crema-card);
+  color: var(--carbon-soft);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.22;
+}
+.icono-admin:hover { opacity: 1; }
+
+h1.brand {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  font-size: var(--titulo-size);
+  color: var(--titulo-color);
+  margin: 0;
+  letter-spacing: -0.01em;
+  transition: color 0.2s;
+}
+
+p.tagline {
+  font-family: 'Work Sans', sans-serif;
+  font-size: 12px;
+  color: var(--texto-sec);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin: 8px 0 4px;
+  transition: color 0.2s;
+}
+
+p.location { font-size: 13px; color: var(--texto-sec); margin: 0; transition: color 0.2s; }
+
+main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 40px; }
+
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+@media (min-width: 640px) { .grid { grid-template-columns: repeat(3, 1fr); gap: 24px; } }
+@media (min-width: 980px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+
+.card {
+  background: var(--crema-card);
+  border-radius: 14px;
+  border: 1px solid var(--linea);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.photo {
+  aspect-ratio: 3 / 4;
+  background-color: color-mix(in srgb, var(--precio-bg) 14%, var(--crema-card));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.photo img { width: 100%; height: 100%; object-fit: cover; }
+.photo svg { width: 34%; opacity: 0.55; }
+
+.dots { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; }
+.dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(42,38,34,0.3); }
+.dots .dot.activo { background: var(--carbon); }
+
+.price-tag {
+  position: absolute;
+  top: 8px;
+  left: -6px;
+  background: var(--precio-bg);
+  color: var(--crema-card);
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  transform: rotate(-3deg);
+  border-radius: 9px;
+  box-shadow: 1px 2px 3px rgba(0,0,0,0.18);
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.sold-stamp {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-10deg);
+  border: 2px solid var(--acento);
+  color: var(--acento);
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: rgba(242,233,219,0.75);
+}
+
+.card.vendido .photo { filter: grayscale(0.5) opacity(0.7); }
+
+.info { padding: 12px 12px 14px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nombre { font-family: 'Fraunces', Georgia, serif; font-size: 15.5px; font-weight: 500; margin: 0; line-height: 1.25; }
+.detalle { font-size: 11.5px; color: var(--carbon-soft); margin: 0; }
+.desc { font-size: 12px; color: var(--carbon-soft); margin: 2px 0 0; line-height: 1.4; }
+.obs { font-size: 11px; color: var(--acento); margin: 2px 0 0; font-weight: 500; line-height: 1.35; transition: color 0.2s; }
+
+.acciones { margin-top: auto; display: flex; gap: 6px; padding-top: 8px; flex-wrap: wrap; }
+.btn {
+  flex: 1; min-width: 70px; text-align: center; font-size: 11.5px; font-weight: 500;
+  padding: 7px 5px; border-radius: 8px; text-decoration: none;
+  border: 1px solid var(--linea); color: var(--carbon); background: transparent; cursor: pointer;
+}
+.btn.whatsapp { background: var(--acento); color: var(--crema-card); border: none; transition: background 0.2s; }
+.card.vendido .acciones { opacity: 0.45; pointer-events: none; }
+
+@media (max-width: 400px) {
+  .grid { gap: 12px; }
+  .info { padding: 10px 10px 12px; gap: 3px; }
+  .nombre { font-size: 14px; }
+  .detalle, .desc, .obs { font-size: 10.5px; }
+  .btn { font-size: 10.5px; padding: 6px 4px; }
+  .price-tag { font-size: 11px; padding: 3px 8px; }
+}
+
+.vacio { text-align: center; padding: 40px 20px; color: var(--carbon-soft); font-size: 14px; }
+
+footer#pieDePagina {
+  text-align: center;
+  padding: 18px 16px 26px;
+  font-size: 10.5px;
+  color: var(--carbon-soft);
+}
+
+/* ---- Overlay compartido (lightbox y login) ---- */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(42,38,34,0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 30px 16px;
+  z-index: 100;
+}
+
+.lightbox-box {
+  position: relative;
+  max-width: 90vw;
+  max-height: 82vh;
+  background: var(--crema-card);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.lightbox-box img {
+  max-width: 100%;
+  max-height: 76vh;
+  object-fit: contain;
+  border-radius: 8px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.cerrar {
+  position: absolute; top: 8px; right: 8px;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: none; background: var(--carbon); color: var(--crema-card);
+  font-size: 14px; cursor: pointer; z-index: 2;
+}
+
+.flecha {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; border-radius: 50%;
+  border: none; background: var(--carbon); color: var(--crema-card);
+  font-size: 20px; cursor: pointer; opacity: 0.85; z-index: 2;
+}
+.flecha.izq { left: -6px; }
+.flecha.der { right: -6px; }
+
+.login-box {
+  background: var(--crema-card);
+  border-radius: 14px;
+  border: 1px solid var(--linea);
+  padding: 24px;
+  width: 100%;
+  max-width: 340px;
+  position: relative;
+}
+.login-box h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 19px; margin: 0 0 14px; }
+
+.btn-olvide {
+  display: block; width: 100%; text-align: center;
+  background: none; border: none; color: var(--carbon-soft);
+  text-decoration: underline; font-size: 12.5px; margin-top: 10px; cursor: pointer;
+}
+
+/* ---- Panel de administración ---- */
+#admin { max-width: 640px; margin: 0 auto; padding: 24px 16px 80px; }
+
+.modo-toggle { text-align: center; padding: 0 16px 14px; }
+.modo-toggle-doble { display: flex; justify-content: center; gap: 18px; }
+.modo-toggle button {
+  background: none; border: none; color: var(--carbon-soft);
+  text-decoration: underline; cursor: pointer; font-family: 'Work Sans', sans-serif; font-size: 12.5px;
+}
+
+.panel { background: var(--crema-card); border-radius: 14px; border: 1px solid var(--linea); padding: 20px; margin-bottom: 20px; }
+.panel h2 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 19px; margin: 0 0 14px; }
+
+.campo { margin-bottom: 14px; }
+.campo label { display: block; font-size: 12.5px; color: var(--carbon-soft); margin-bottom: 5px; }
+.campo input[type="text"], .campo input[type="number"], .campo input[type="url"],
+.campo input[type="email"], .campo input[type="password"], .campo textarea, .campo select {
+  width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--linea);
+  background: #fff; font-family: 'Work Sans', sans-serif; font-size: 14px; color: var(--carbon);
+}
+.campo textarea { resize: vertical; min-height: 60px; }
+
+.fila-doble { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.btn-accion { display: inline-block; padding: 10px 16px; border-radius: 8px; border: none; font-family: 'Work Sans', sans-serif; font-size: 13.5px; font-weight: 500; cursor: pointer; }
+.btn-guardar { background: var(--oliva); color: var(--crema); width: 100%; margin-top: 6px; padding: 12px; }
+.btn-secundario { background: transparent; border: 1px solid var(--linea); color: var(--carbon); width: 100%; padding: 10px; }
+
+.fotos-existentes { display: flex; gap: 8px; flex-wrap: wrap; }
+.foto-existente { position: relative; width: 64px; }
+.foto-existente img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--linea); }
+.foto-existente .fila-botones { display: flex; justify-content: center; gap: 3px; margin-top: 3px; }
+.foto-existente .fila-botones button {
+  background: var(--crema); border: 1px solid var(--linea); border-radius: 5px;
+  font-size: 10px; padding: 2px 5px; cursor: pointer; color: var(--carbon);
+}
+
+.lista-admin-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--linea); flex-wrap: wrap; }
+.lista-admin-item:last-child { border-bottom: none; }
+.mini-foto { width: 44px; height: 44px; border-radius: 8px; background: var(--camel); flex-shrink: 0; background-size: cover; background-position: center; }
+.lista-admin-info { flex: 1; min-width: 100px; }
+.lista-admin-info p { margin: 0; font-size: 13px; }
+.li-nombre { font-weight: 500; }
+.li-precio { color: var(--carbon-soft); font-family: 'Space Mono', monospace; font-size: 12px; }
+
+.badge-estado { font-size: 10.5px; padding: 2px 8px; border-radius: 20px; background: var(--oliva); color: var(--crema); }
+.badge-estado.vendido { background: var(--terracota); }
+
+.li-botones { display: flex; gap: 6px; flex-wrap: wrap; }
+.li-botones button { background: none; border: 1px solid var(--linea); border-radius: 6px; font-size: 11px; padding: 5px 8px; cursor: pointer; color: var(--carbon); }
+
+.aviso { font-size: 12px; padding: 8px 10px; border-radius: 6px; background: var(--tan2); color: var(--carbon); margin-top: 8px; }
+
+</style>
 </head>
 <body>
 
@@ -26,13 +341,13 @@
     <div class="grid" id="grid"></div>
     <p class="vacio" id="vacio" style="display:none;">Todavía no hay prendas cargadas.</p>
   </main>
+  <footer id="pieDePagina">hecho por Tao · @tao.creando</footer>
 </div>
 
-<!-- Lightbox de fotos ampliadas -->
+<!-- Lightbox de fotos ampliadas (pellizcar con los dedos para hacer zoom) -->
 <div id="lightbox" class="overlay" style="display:none;">
   <div class="lightbox-box" id="lightboxBox">
     <button class="cerrar" id="btnCerrarLightbox">&#10005;</button>
-    <button class="zoom-btn" id="btnZoom" title="Ampliar / achicar">&#128269;</button>
     <button class="flecha izq" id="btnFlechaIzq">&#8249;</button>
     <img id="lightboxImg" src="" alt="">
     <button class="flecha der" id="btnFlechaDer">&#8250;</button>
@@ -82,46 +397,22 @@
       <input type="text" id="cfg_ciudad" placeholder="La Plata, Buenos Aires">
     </div>
     <div class="campo">
-      <label for="cfg_paleta">Paleta de colores</label>
+      <label for="cfg_paleta">Tema (paleta, textura y color del título, todo junto)</label>
       <select id="cfg_paleta">
-        <option value="calida">Cálida (fondo tan) — la actual</option>
-        <option value="durazno">Suave durazno (fondo flesh)</option>
-        <option value="palida">Pálida oliva (fondo crema)</option>
+        <option value="calida">Cálida — crema y camel, sin textura</option>
+        <option value="follaje">Follaje — verdes difuminados</option>
+        <option value="cabernet">Cabernet — taupe oscuro con hojas sueltas</option>
+        <option value="verde">Verde bosque — sin textura</option>
       </select>
     </div>
-
-    <div class="fila-doble">
-      <div class="campo">
-        <label for="cfg_tamano_titulo">Tamaño del título</label>
-        <select id="cfg_tamano_titulo">
-          <option value="chico">Chico</option>
-          <option value="mediano">Mediano (actual)</option>
-          <option value="grande">Grande</option>
-        </select>
-      </div>
-      <div class="campo">
-        <label for="cfg_color_titulo">Color del título</label>
-        <select id="cfg_color_titulo">
-          <option value="carbon">Carbón (actual)</option>
-          <option value="oliva">Oliva</option>
-          <option value="camel">Camel</option>
-          <option value="terracota">Terracota</option>
-          <option value="ebony">Ebony</option>
-          <option value="brownsugar">Brown sugar</option>
-        </select>
-      </div>
-    </div>
-
     <div class="campo">
-      <label for="cfg_fondo">Fondo decorativo (aplica a toda la web)</label>
-      <select id="cfg_fondo">
-        <option value="liso">Liso, sin diseño</option>
-        <option value="hojas">Hojas</option>
-        <option value="enredadera1">Enredadera — tipo 1</option>
-        <option value="enredadera2">Enredadera — tipo 2</option>
+      <label for="cfg_tamano_titulo">Tamaño del título</label>
+      <select id="cfg_tamano_titulo">
+        <option value="chico">Chico</option>
+        <option value="mediano">Mediano</option>
+        <option value="grande">Grande</option>
       </select>
     </div>
-
     <div class="campo">
       <label for="cfg_logo">Logo (opcional, reemplaza el nombre de texto)</label>
       <input type="file" id="cfg_logo" accept="image/*">
@@ -187,6 +478,542 @@
   </div>
 </div>
 
-<script type="module" src="app.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs, getDoc, setDoc, doc, updateDoc, deleteDoc, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut,
+  setPersistence, browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// ---- CONFIGURACIÓN DEL NEGOCIO: cambiar acá para reusar este sitio con otro rubro ----
+const WHATSAPP = "5492215424321";
+const MENSAJE_WHATSAPP = (nombre) => `Hola! Te escribo por ${nombre}`;
+
+// ---- Temas: paleta + textura + color de título, todo unificado ----
+const PALETAS = {
+  calida:   { fondo: "#F2E9DB", precio: "#B58A5C", acento: "#B0714E", titulo: "#5E604B", texto: "#55504A", clase: "" },
+  follaje:  { fondo: "#E8DFD3", precio: "#5B1F2E", acento: "#23222A", titulo: "#5B1F2E", texto: "#55504A", clase: "fondo-follaje" },
+  cabernet: { fondo: "#A79C8E", precio: "#23222A", acento: "#5B1F2E", titulo: "#23222A", texto: "#3A342E", clase: "fondo-cabernet" },
+  verde:    { fondo: "#56684A", precio: "#B58A5C", acento: "#D7B391", titulo: "#F2E9DB", texto: "#DCE1CE", clase: "" }
+};
+
+const TITULO_TAMANOS = { chico: "30px", mediano: "42px", grande: "54px" };
+
+const firebaseConfig = {
+  apiKey: "AIzaSyADNiE9L1_LnGYTZgNqAQT-p6kjhq9mNpQ",
+  authDomain: "podriausarlo-308a1.firebaseapp.com",
+  projectId: "podriausarlo-308a1",
+  storageBucket: "podriausarlo-308a1.firebasestorage.app",
+  messagingSenderId: "541732226737",
+  appId: "1:541732226737:web:ee8225b50317e577ccc490"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence).catch(() => {});
+
+let prendas = [];
+let fotoIndices = {};
+let lightboxPrenda = null;
+let lightboxIdx = 0;
+let sesionActiva = false;
+let editandoId = null;
+let fotosEnEdicion = [];
+let configSitio = {};
+
+// ---------- Utilidades ----------
+function iconoPercha() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="#2A2622" stroke-width="1.3"><path d="M8 3l4 2 4-2 3 4-3 2v11H5V9L2 7z"/></svg>';
+}
+
+function formatoPrecio(n) {
+  return "$ " + Number(n).toLocaleString("es-AR");
+}
+
+function redimensionarImagen(file, maxWidth = 700, calidad = 0.62) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", calidad));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- Configuración del sitio ----------
+function aplicarPaleta(nombre) {
+  const p = PALETAS[nombre] || PALETAS.calida;
+  document.documentElement.style.setProperty("--fondo", p.fondo);
+  document.documentElement.style.setProperty("--precio-bg", p.precio);
+  document.documentElement.style.setProperty("--acento", p.acento);
+  document.documentElement.style.setProperty("--titulo-color", p.titulo);
+  document.documentElement.style.setProperty("--texto-sec", p.texto);
+  document.body.className = document.body.className.replace(/fondo-\S+/g, "").trim();
+  if (p.clase) document.body.classList.add(p.clase);
+}
+
+function aplicarConfigUI() {
+  document.getElementById("txtTagline").textContent = configSitio.tagline || "ropa usada, vintage, excelente estado";
+  document.getElementById("txtCiudad").textContent = configSitio.ciudad || "La Plata, Buenos Aires";
+  document.title = (configSitio.nombre || "podriausarlo");
+
+  aplicarPaleta(configSitio.paleta || "calida");
+  document.documentElement.style.setProperty("--titulo-size", TITULO_TAMANOS[configSitio.tamanoTitulo] || TITULO_TAMANOS.mediano);
+
+  const txtNombre = document.getElementById("txtNombre");
+  const logoImg = document.getElementById("logoImg");
+  if (configSitio.logo) {
+    logoImg.src = configSitio.logo;
+    logoImg.style.display = "block";
+    txtNombre.style.display = "none";
+  } else {
+    logoImg.style.display = "none";
+    txtNombre.style.display = "block";
+    txtNombre.textContent = configSitio.nombre || "podriausarlo";
+  }
+
+  document.getElementById("cfg_nombre").value = configSitio.nombre || "";
+  document.getElementById("cfg_tagline").value = configSitio.tagline || "";
+  document.getElementById("cfg_ciudad").value = configSitio.ciudad || "";
+  document.getElementById("cfg_paleta").value = configSitio.paleta || "calida";
+  document.getElementById("cfg_tamano_titulo").value = configSitio.tamanoTitulo || "mediano";
+}
+
+async function cargarConfig() {
+  try {
+    const snap = await getDoc(doc(db, "config", "sitio"));
+    if (snap.exists()) configSitio = snap.data();
+  } catch (e) { /* todavía no existe, se usan los valores por defecto */ }
+  aplicarConfigUI();
+}
+
+async function guardarConfiguracion() {
+  const logoInput = document.getElementById("cfg_logo");
+  let logoBase64 = configSitio.logo || null;
+  if (logoInput.files && logoInput.files[0]) {
+    logoBase64 = await redimensionarImagen(logoInput.files[0], 400, 0.8);
+  }
+
+  configSitio = {
+    nombre: document.getElementById("cfg_nombre").value.trim(),
+    tagline: document.getElementById("cfg_tagline").value.trim(),
+    ciudad: document.getElementById("cfg_ciudad").value.trim(),
+    paleta: document.getElementById("cfg_paleta").value,
+    tamanoTitulo: document.getElementById("cfg_tamano_titulo").value,
+    logo: logoBase64
+  };
+  await setDoc(doc(db, "config", "sitio"), configSitio);
+  logoInput.value = "";
+  aplicarConfigUI();
+  const aviso = document.getElementById("avisoConfig");
+  aviso.style.display = "block";
+  aviso.textContent = "Configuración guardada.";
+}
+
+async function quitarLogo() {
+  configSitio.logo = null;
+  await setDoc(doc(db, "config", "sitio"), configSitio);
+  aplicarConfigUI();
+  const aviso = document.getElementById("avisoConfig");
+  aviso.style.display = "block";
+  aviso.textContent = "Logo quitado, volviste al nombre de texto.";
+}
+
+// ---------- Catálogo (Firestore) ----------
+async function cargarCatalogo() {
+  const vacio = document.getElementById("vacio");
+  vacio.style.display = "block";
+  vacio.textContent = "Cargando catálogo...";
+  const q = query(collection(db, "prendas"), orderBy("creado", "desc"));
+  const snap = await getDocs(q);
+  prendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderGrid();
+  if (sesionActiva) renderListaAdmin();
+}
+
+function limpiarFormPrenda() {
+  document.getElementById("f_nombre").value = "";
+  document.getElementById("f_precio").value = "";
+  document.getElementById("f_talle").value = "";
+  document.getElementById("f_descripcion").value = "";
+  document.getElementById("f_observaciones").value = "";
+  document.getElementById("f_reel").value = "";
+  document.getElementById("f_foto").value = "";
+}
+
+function renderFotosExistentes() {
+  const cont = document.getElementById("fotosExistentes");
+  const contWrap = document.getElementById("fotosExistentesCont");
+  contWrap.style.display = fotosEnEdicion.length ? "block" : "none";
+  cont.innerHTML = fotosEnEdicion.map((foto, i) => `
+    <div class="foto-existente">
+      <img src="${foto}" alt="">
+      <div class="fila-botones">
+        <button data-idx="${i}" data-accion="izq" ${i === 0 ? "disabled" : ""}>&#8249;</button>
+        <button data-idx="${i}" data-accion="borrar">&#10005;</button>
+        <button data-idx="${i}" data-accion="der" ${i === fotosEnEdicion.length - 1 ? "disabled" : ""}>&#8250;</button>
+      </div>
+    </div>
+  `).join("");
+  cont.querySelectorAll("button").forEach(b => {
+    b.addEventListener("click", () => {
+      const i = Number(b.dataset.idx);
+      if (b.dataset.accion === "izq" && i > 0) { [fotosEnEdicion[i - 1], fotosEnEdicion[i]] = [fotosEnEdicion[i], fotosEnEdicion[i - 1]]; }
+      if (b.dataset.accion === "der" && i < fotosEnEdicion.length - 1) { [fotosEnEdicion[i + 1], fotosEnEdicion[i]] = [fotosEnEdicion[i], fotosEnEdicion[i + 1]]; }
+      if (b.dataset.accion === "borrar") { fotosEnEdicion.splice(i, 1); }
+      renderFotosExistentes();
+    });
+  });
+}
+
+function editarPrenda(id) {
+  const p = prendas.find(x => x.id === id);
+  if (!p) return;
+  editandoId = id;
+  fotosEnEdicion = [...(p.fotos || [])];
+
+  document.getElementById("f_nombre").value = p.nombre || "";
+  document.getElementById("f_precio").value = p.precio || "";
+  document.getElementById("f_talle").value = p.talle || "";
+  document.getElementById("f_descripcion").value = p.descripcion || "";
+  document.getElementById("f_observaciones").value = p.observaciones || "";
+  document.getElementById("f_reel").value = p.reel || "";
+  document.getElementById("f_foto").value = "";
+
+  document.getElementById("tituloFormPrenda").textContent = "Editar prenda";
+  document.getElementById("btnGuardarPrenda").textContent = "Guardar cambios";
+  document.getElementById("btnCancelarEdicion").style.display = "block";
+  document.getElementById("labelFotos").textContent = "Agregar más fotos (opcional)";
+
+  renderFotosExistentes();
+  document.getElementById("f_nombre").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cancelarEdicion() {
+  editandoId = null;
+  fotosEnEdicion = [];
+  document.getElementById("tituloFormPrenda").textContent = "Cargar prenda nueva";
+  document.getElementById("btnGuardarPrenda").textContent = "Guardar prenda";
+  document.getElementById("btnCancelarEdicion").style.display = "none";
+  document.getElementById("labelFotos").textContent = "Fotos (hasta 4)";
+  document.getElementById("fotosExistentesCont").style.display = "none";
+  limpiarFormPrenda();
+}
+
+async function guardarPrenda() {
+  const nombre = document.getElementById("f_nombre").value.trim();
+  const precio = document.getElementById("f_precio").value;
+  const talle = document.getElementById("f_talle").value.trim();
+  const descripcion = document.getElementById("f_descripcion").value.trim();
+  const observaciones = document.getElementById("f_observaciones").value.trim();
+  const reel = document.getElementById("f_reel").value.trim();
+  const fotoInput = document.getElementById("f_foto");
+  const aviso = document.getElementById("avisoGuardado");
+
+  if (!nombre || !precio) {
+    aviso.style.display = "block";
+    aviso.textContent = "Faltan el nombre o el precio.";
+    return;
+  }
+
+  aviso.style.display = "block";
+  aviso.textContent = "Guardando...";
+
+  let nuevasFotos = [];
+  if (fotoInput.files && fotoInput.files.length) {
+    nuevasFotos = await Promise.all(Array.from(fotoInput.files).map(f => redimensionarImagen(f)));
+  }
+  const fotosFinal = [...fotosEnEdicion, ...nuevasFotos].slice(0, 4);
+  const datos = { nombre, precio: Number(precio), talle, descripcion, observaciones, fotos: fotosFinal, reel };
+
+  if (editandoId) {
+    await updateDoc(doc(db, "prendas", editandoId), datos);
+    aviso.textContent = "Cambios guardados.";
+  } else {
+    await addDoc(collection(db, "prendas"), { ...datos, vendido: false, creado: Date.now() });
+    aviso.textContent = "Prenda guardada.";
+  }
+
+  cancelarEdicion();
+  await cargarCatalogo();
+}
+
+async function toggleVendido(id) {
+  const p = prendas.find(x => x.id === id);
+  if (!p) return;
+  await updateDoc(doc(db, "prendas", id), { vendido: !p.vendido });
+  await cargarCatalogo();
+}
+
+async function eliminarPrenda(id) {
+  if (!confirm("¿Eliminar esta prenda? No se puede deshacer.")) return;
+  if (editandoId === id) cancelarEdicion();
+  await deleteDoc(doc(db, "prendas", id));
+  await cargarCatalogo();
+}
+
+// ---------- Render vidriera ----------
+function cardFotoHTML(p) {
+  const fotos = p.fotos || [];
+  if (fotos.length === 0) return iconoPercha();
+  const idx = (fotoIndices[p.id] || 0) % fotos.length;
+  let html = `<img src="${fotos[idx]}" alt="${p.nombre}" loading="lazy">`;
+  if (fotos.length > 1) {
+    html += `<div class="dots">` + fotos.map((_, i) => `<span class="dot ${i === idx ? 'activo' : ''}"></span>`).join("") + `</div>`;
+  }
+  return html;
+}
+
+function renderGrid() {
+  const grid = document.getElementById("grid");
+  const vacio = document.getElementById("vacio");
+  if (prendas.length === 0) {
+    grid.innerHTML = "";
+    vacio.style.display = "block";
+    vacio.textContent = "Todavía no hay prendas cargadas.";
+    return;
+  }
+  vacio.style.display = "none";
+  grid.innerHTML = prendas.map(p => `
+    <div class="card ${p.vendido ? 'vendido' : ''}">
+      <div class="photo" data-id="${p.id}">
+        ${cardFotoHTML(p)}
+        ${p.vendido ? '<div class="sold-stamp">vendido</div>' : ''}
+      </div>
+      <div class="price-tag">${formatoPrecio(p.precio)}</div>
+      <div class="info">
+        <p class="nombre">${p.nombre}</p>
+        <p class="detalle">Talle ${p.talle}</p>
+        <p class="desc">${p.descripcion || ""}</p>
+        ${p.observaciones ? `<p class="obs">${p.observaciones}</p>` : ''}
+        <div class="acciones">
+          ${p.reel ? `<a class="btn" href="${p.reel}" target="_blank">Ver en IG</a>` : ''}
+          <a class="btn whatsapp" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent(MENSAJE_WHATSAPP(p.nombre))}" target="_blank">Consultar</a>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  grid.querySelectorAll(".photo").forEach(el => {
+    el.addEventListener("click", () => abrirLightbox(el.dataset.id));
+  });
+}
+
+function renderListaAdmin() {
+  const cont = document.getElementById("listaAdmin");
+  if (prendas.length === 0) {
+    cont.innerHTML = '<p style="font-size:13px; color:var(--carbon-soft);">Todavía no cargaste ninguna prenda.</p>';
+    return;
+  }
+  cont.innerHTML = prendas.map(p => `
+    <div class="lista-admin-item">
+      <div class="mini-foto" style="background-image:url('${(p.fotos && p.fotos[0]) || ''}')"></div>
+      <div class="lista-admin-info">
+        <p class="li-nombre">${p.nombre}</p>
+        <p class="li-precio">${formatoPrecio(p.precio)} · talle ${p.talle}</p>
+      </div>
+      <span class="badge-estado ${p.vendido ? 'vendido' : ''}">${p.vendido ? 'vendido' : 'disponible'}</span>
+      <div class="li-botones">
+        <button data-accion="editar" data-id="${p.id}">Editar</button>
+        <button data-accion="toggle" data-id="${p.id}">${p.vendido ? 'Reactivar' : 'Marcar vendido'}</button>
+        <button data-accion="eliminar" data-id="${p.id}">Eliminar</button>
+      </div>
+    </div>
+  `).join("");
+
+  cont.querySelectorAll("[data-accion='editar']").forEach(b => b.addEventListener("click", () => editarPrenda(b.dataset.id)));
+  cont.querySelectorAll("[data-accion='toggle']").forEach(b => b.addEventListener("click", () => toggleVendido(b.dataset.id)));
+  cont.querySelectorAll("[data-accion='eliminar']").forEach(b => b.addEventListener("click", () => eliminarPrenda(b.dataset.id)));
+}
+
+// ---------- Lightbox: deslizar entre fotos + pellizcar para hacer zoom ----------
+let zoomScale = 1, zoomX = 0, zoomY = 0;
+let pinchStartDist = 0, pinchStartScale = 1;
+let panStartX = 0, panStartY = 0, panActivo = false;
+let swipeStartX = 0;
+
+function aplicarTransformImg() {
+  document.getElementById("lightboxImg").style.transform = `translate(${zoomX}px, ${zoomY}px) scale(${zoomScale})`;
+}
+
+function resetZoomImg() {
+  zoomScale = 1; zoomX = 0; zoomY = 0;
+  aplicarTransformImg();
+}
+
+function distanciaEntreDedos(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function abrirLightbox(id) {
+  const p = prendas.find(x => x.id === id);
+  if (!p || !p.fotos || p.fotos.length === 0) return;
+  lightboxPrenda = p;
+  lightboxIdx = fotoIndices[id] || 0;
+  resetZoomImg();
+  document.getElementById("lightbox").style.display = "flex";
+  renderLightbox();
+}
+
+function renderLightbox() {
+  if (!lightboxPrenda) return;
+  const fotos = lightboxPrenda.fotos;
+  lightboxIdx = (lightboxIdx + fotos.length) % fotos.length;
+  document.getElementById("lightboxImg").src = fotos[lightboxIdx];
+  const dotsCont = document.getElementById("lightboxDots");
+  dotsCont.innerHTML = fotos.length > 1
+    ? fotos.map((_, i) => `<span class="dot ${i === lightboxIdx ? 'activo' : ''}"></span>`).join("")
+    : "";
+  document.querySelector("#lightbox .flecha.izq").style.display = fotos.length > 1 ? "flex" : "none";
+  document.querySelector("#lightbox .flecha.der").style.display = fotos.length > 1 ? "flex" : "none";
+}
+
+function cerrarLightbox() {
+  document.getElementById("lightbox").style.display = "none";
+  if (lightboxPrenda) fotoIndices[lightboxPrenda.id] = lightboxIdx;
+  lightboxPrenda = null;
+  resetZoomImg();
+}
+
+function lightboxAnterior() { resetZoomImg(); lightboxIdx -= 1; renderLightbox(); }
+function lightboxSiguiente() { resetZoomImg(); lightboxIdx += 1; renderLightbox(); }
+
+function initGestosLightbox() {
+  const img = document.getElementById("lightboxImg");
+
+  img.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+      pinchStartDist = distanciaEntreDedos(e.touches);
+      pinchStartScale = zoomScale;
+    } else if (e.touches.length === 1) {
+      if (zoomScale > 1.05) {
+        panActivo = true;
+        panStartX = e.touches[0].clientX - zoomX;
+        panStartY = e.touches[0].clientY - zoomY;
+      } else {
+        swipeStartX = e.touches[0].clientX;
+      }
+    }
+  }, { passive: true });
+
+  img.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dist = distanciaEntreDedos(e.touches);
+      zoomScale = Math.min(4, Math.max(1, pinchStartScale * (dist / pinchStartDist)));
+      aplicarTransformImg();
+    } else if (e.touches.length === 1 && panActivo) {
+      e.preventDefault();
+      zoomX = e.touches[0].clientX - panStartX;
+      zoomY = e.touches[0].clientY - panStartY;
+      aplicarTransformImg();
+    }
+  }, { passive: false });
+
+  img.addEventListener("touchend", (e) => {
+    if (panActivo) { panActivo = false; return; }
+    if (zoomScale > 1.05) return;
+    const dx = e.changedTouches[0].clientX - swipeStartX;
+    if (Math.abs(dx) > 40) { dx > 0 ? lightboxAnterior() : lightboxSiguiente(); }
+  });
+
+  img.addEventListener("dblclick", () => {
+    if (zoomScale > 1.05) { resetZoomImg(); }
+    else { zoomScale = 2.2; zoomX = 0; zoomY = 0; aplicarTransformImg(); }
+  });
+}
+
+// ---------- Login / sesión ----------
+function abrirLogin() {
+  if (sesionActiva) { mostrarAdmin(); return; }
+  document.getElementById("loginModal").style.display = "flex";
+}
+
+function cerrarLogin() {
+  document.getElementById("loginModal").style.display = "none";
+}
+
+async function iniciarSesion() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const pass = document.getElementById("loginPass").value;
+  const aviso = document.getElementById("loginAviso");
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    cerrarLogin();
+  } catch (e) {
+    aviso.style.display = "block";
+    aviso.textContent = "Mail o contraseña incorrectos.";
+  }
+}
+
+async function recuperarPass() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const aviso = document.getElementById("loginAviso");
+  if (!email) {
+    aviso.style.display = "block";
+    aviso.textContent = "Escribí tu mail arriba primero.";
+    return;
+  }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    aviso.style.display = "block";
+    aviso.textContent = "Te mandamos un mail para crear una nueva contraseña.";
+  } catch (e) {
+    aviso.style.display = "block";
+    aviso.textContent = "No pudimos enviar el mail. Revisá que esté bien escrito.";
+  }
+}
+
+function mostrarAdmin() {
+  document.getElementById("vidriera").style.display = "none";
+  document.getElementById("admin").style.display = "block";
+  renderListaAdmin();
+}
+
+function mostrarVidriera() {
+  document.getElementById("admin").style.display = "none";
+  document.getElementById("vidriera").style.display = "block";
+}
+
+onAuthStateChanged(auth, (user) => {
+  sesionActiva = !!user;
+});
+
+// ---------- Conexión de botones ----------
+document.getElementById("btnAdminIcono").addEventListener("click", abrirLogin);
+document.getElementById("btnCerrarLogin").addEventListener("click", cerrarLogin);
+document.getElementById("btnIngresar").addEventListener("click", iniciarSesion);
+document.getElementById("btnOlvide").addEventListener("click", recuperarPass);
+document.getElementById("btnCerrarLightbox").addEventListener("click", cerrarLightbox);
+document.getElementById("btnFlechaIzq").addEventListener("click", lightboxAnterior);
+document.getElementById("btnFlechaDer").addEventListener("click", lightboxSiguiente);
+document.getElementById("btnGuardarPrenda").addEventListener("click", guardarPrenda);
+document.getElementById("btnCancelarEdicion").addEventListener("click", cancelarEdicion);
+document.getElementById("btnGuardarConfig").addEventListener("click", guardarConfiguracion);
+document.getElementById("btnQuitarLogo").addEventListener("click", quitarLogo);
+document.getElementById("btnVerVidriera").addEventListener("click", mostrarVidriera);
+document.getElementById("btnCerrarSesion").addEventListener("click", () => { signOut(auth); mostrarVidriera(); });
+
+initGestosLightbox();
+cargarConfig();
+cargarCatalogo();
+
+</script>
 </body>
 </html>
