@@ -759,7 +759,7 @@ function renderFotosExistentes() {
   contWrap.style.display = fotosEnEdicion.length ? "block" : "none";
   cont.innerHTML = fotosEnEdicion.map((foto, i) => `
     <div class="foto-existente">
-      <img src="${foto.thumb}" alt="">
+      <img src="${foto}" alt="">
       <div class="fila-botones">
         <button data-idx="${i}" data-accion="izq" ${i === 0 ? "disabled" : ""}>&#8249;</button>
         <button data-idx="${i}" data-accion="borrar">&#10005;</button>
@@ -782,9 +782,9 @@ function editarPrenda(id) {
   const p = prendas.find(x => x.id === id);
   if (!p) return;
   editandoId = id;
-  // Compatibilidad: las fotos viejas se guardaron como texto simple (una sola versión).
-  // Las nuevas se guardan como {thumb, full}. Acá se normalizan todas al segundo formato.
-  fotosEnEdicion = (p.fotos || []).map(f => typeof f === "string" ? { thumb: f, full: f } : f);
+  // Por si alguna prenda quedó guardada con el formato {thumb, full} durante las pruebas,
+  // se recupera la versión de mejor calidad y se vuelve al formato de una sola foto por versión.
+  fotosEnEdicion = (p.fotos || []).map(f => typeof f === "string" ? f : (f.full || f.thumb));
 
   document.getElementById("f_nombre").value = p.nombre || "";
   document.getElementById("f_precio").value = p.precio || "";
@@ -836,21 +836,16 @@ async function guardarPrenda() {
   try {
     let nuevasFotos = [];
     if (fotoInput.files && fotoInput.files.length) {
-      nuevasFotos = await Promise.all(Array.from(fotoInput.files).map(async (f) => {
-        const thumb = await redimensionarImagen(f, 300, 0.45);
-        const full = await redimensionarImagen(f, 800, 0.55);
-        return { thumb, full };
-      }));
+      nuevasFotos = await Promise.all(Array.from(fotoInput.files).map(f => redimensionarImagen(f, 700, 0.62)));
     }
     const fotosFinal = [...fotosEnEdicion, ...nuevasFotos].slice(0, 4);
 
-    // Firestore no permite documentos de más de 1MB. Si las fotos (ya comprimidas)
-    // se acercan a ese límite, se avisa ANTES de intentar guardar, en vez de que
-    // falle en silencio.
+    // Firestore no permite documentos de más de 1MB. Esto solo debería avisar
+    // en casos extremos (fotos excepcionalmente pesadas), no en el uso normal.
     const pesoFotosKB = Math.round(
-      fotosFinal.reduce((acc, f) => acc + (f.thumb?.length || 0) + (f.full?.length || 0), 0) / 1024
+      fotosFinal.reduce((acc, f) => acc + (typeof f === "string" ? f.length : 0), 0) / 1024
     );
-    if (pesoFotosKB > 700) {
+    if (pesoFotosKB > 900) {
       aviso.textContent = `Las fotos pesan demasiado (~${pesoFotosKB}KB) y Firestore podría rechazar el guardado. Probá con menos fotos o fotos más simples/livianas.`;
       return;
     }
