@@ -734,9 +734,13 @@ async function moverPrenda(id, direccion) {
   if (idx === -1 || otroIdx < 0 || otroIdx >= prendas.length) return;
   const a = prendas[idx], b = prendas[otroIdx];
   const ordenA = a.orden ?? 0, ordenB = b.orden ?? 0;
-  await updateDoc(doc(db, "prendas", a.id), { orden: ordenB });
-  await updateDoc(doc(db, "prendas", b.id), { orden: ordenA });
-  await cargarCatalogo();
+  try {
+    await updateDoc(doc(db, "prendas", a.id), { orden: ordenB });
+    await updateDoc(doc(db, "prendas", b.id), { orden: ordenA });
+    await cargarCatalogo();
+  } catch (e) {
+    alert("No se pudo reordenar: " + (e.message || "revisá la conexión."));
+  }
 }
 
 function limpiarFormPrenda() {
@@ -829,42 +833,66 @@ async function guardarPrenda() {
   aviso.style.display = "block";
   aviso.textContent = "Guardando...";
 
-  let nuevasFotos = [];
-  if (fotoInput.files && fotoInput.files.length) {
-    nuevasFotos = await Promise.all(Array.from(fotoInput.files).map(async (f) => {
-      const thumb = await redimensionarImagen(f, 380, 0.55);
-      const full = await redimensionarImagen(f, 1000, 0.65);
-      return { thumb, full };
-    }));
-  }
-  const fotosFinal = [...fotosEnEdicion, ...nuevasFotos].slice(0, 4);
-  const datos = { nombre, precio: Number(precio), talle, descripcion, observaciones, fotos: fotosFinal, reel };
+  try {
+    let nuevasFotos = [];
+    if (fotoInput.files && fotoInput.files.length) {
+      nuevasFotos = await Promise.all(Array.from(fotoInput.files).map(async (f) => {
+        const thumb = await redimensionarImagen(f, 340, 0.5);
+        const full = await redimensionarImagen(f, 900, 0.6);
+        return { thumb, full };
+      }));
+    }
+    const fotosFinal = [...fotosEnEdicion, ...nuevasFotos].slice(0, 4);
 
-  if (editandoId) {
-    await updateDoc(doc(db, "prendas", editandoId), datos);
-    aviso.textContent = "Cambios guardados.";
-  } else {
-    const ordenNuevo = prendas.length ? Math.max(...prendas.map(p => p.orden ?? 0)) + 1 : 0;
-    await addDoc(collection(db, "prendas"), { ...datos, vendido: false, creado: Date.now(), orden: ordenNuevo });
-    aviso.textContent = "Prenda guardada.";
-  }
+    // Firestore no permite documentos de más de 1MB. Si las fotos (ya comprimidas)
+    // se acercan a ese límite, se avisa ANTES de intentar guardar, en vez de que
+    // falle en silencio.
+    const pesoFotosKB = Math.round(
+      fotosFinal.reduce((acc, f) => acc + (f.thumb?.length || 0) + (f.full?.length || 0), 0) / 1024
+    );
+    if (pesoFotosKB > 700) {
+      aviso.textContent = `Las fotos pesan demasiado (~${pesoFotosKB}KB) y Firestore podría rechazar el guardado. Probá con menos fotos o fotos más simples/livianas.`;
+      return;
+    }
 
-  cancelarEdicion();
-  await cargarCatalogo();
+    const datos = { nombre, precio: Number(precio), talle, descripcion, observaciones, fotos: fotosFinal, reel };
+
+    if (editandoId) {
+      await updateDoc(doc(db, "prendas", editandoId), datos);
+      aviso.textContent = "Cambios guardados.";
+    } else {
+      const ordenNuevo = prendas.length ? Math.max(...prendas.map(p => p.orden ?? 0)) + 1 : 0;
+      await addDoc(collection(db, "prendas"), { ...datos, vendido: false, creado: Date.now(), orden: ordenNuevo });
+      aviso.textContent = "Prenda guardada.";
+    }
+
+    cancelarEdicion();
+    await cargarCatalogo();
+  } catch (e) {
+    aviso.textContent = "No se pudo guardar: " + (e.message || "revisá la conexión e intentá de nuevo.");
+  }
 }
 
 async function toggleVendido(id) {
   const p = prendas.find(x => x.id === id);
   if (!p) return;
-  await updateDoc(doc(db, "prendas", id), { vendido: !p.vendido });
-  await cargarCatalogo();
+  try {
+    await updateDoc(doc(db, "prendas", id), { vendido: !p.vendido });
+    await cargarCatalogo();
+  } catch (e) {
+    alert("No se pudo actualizar: " + (e.message || "revisá la conexión."));
+  }
 }
 
 async function eliminarPrenda(id) {
   if (!confirm("¿Eliminar esta prenda? No se puede deshacer.")) return;
   if (editandoId === id) cancelarEdicion();
-  await deleteDoc(doc(db, "prendas", id));
-  await cargarCatalogo();
+  try {
+    await deleteDoc(doc(db, "prendas", id));
+    await cargarCatalogo();
+  } catch (e) {
+    alert("No se pudo eliminar: " + (e.message || "revisá la conexión."));
+  }
 }
 
 // ---------- Render vidriera ----------
