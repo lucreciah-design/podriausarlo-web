@@ -837,8 +837,8 @@ async function guardarPrenda() {
     let nuevasFotos = [];
     if (fotoInput.files && fotoInput.files.length) {
       nuevasFotos = await Promise.all(Array.from(fotoInput.files).map(async (f) => {
-        const thumb = await redimensionarImagen(f, 340, 0.5);
-        const full = await redimensionarImagen(f, 900, 0.6);
+        const thumb = await redimensionarImagen(f, 300, 0.45);
+        const full = await redimensionarImagen(f, 800, 0.55);
         return { thumb, full };
       }));
     }
