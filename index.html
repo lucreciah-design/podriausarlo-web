@@ -40,13 +40,8 @@ body {
   font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   background-repeat: repeat;
-  transition: background-color 0.2s, opacity 0.25s ease;
-  opacity: 1;
+  transition: background-color 0.2s;
 }
-
-/* Se saca apenas se aplica la configuración guardada (tema, nombre, logo),
-   así se evita mostrar por una fracción de segundo el tema por defecto */
-body.pre-carga { opacity: 0; }
 
 /* Texturas de los temas Follaje y Cabernet — Cálida no lleva ninguna */
 body.fondo-follaje {
@@ -104,6 +99,7 @@ p.tagline {
   font-size: 12px;
   color: var(--texto-sec);
   letter-spacing: 0.03em;
+  text-transform: uppercase;
   margin: 8px 0 4px;
   transition: color 0.2s;
 }
@@ -258,23 +254,6 @@ footer#pieDePagina {
 .flecha.izq { left: -6px; }
 .flecha.der { right: -6px; }
 
-/* El visor de fotos ampliadas ocupa toda la pantalla (a diferencia del login,
-   que sigue siendo un cuadro flotante) para que al hacer zoom/pan la foto
-   se pueda mover libremente por toda la pantalla y no quede encerrada. */
-#lightbox { padding: 0; background: rgba(20,18,16,0.97); }
-#lightbox .lightbox-box {
-  max-width: 100vw; max-height: 100vh; width: 100vw; height: 100vh;
-  background: transparent; border-radius: 0; padding: 0;
-}
-#lightbox .lightbox-box img { max-width: 100vw; max-height: 100vh; border-radius: 0; }
-#lightbox .cerrar { top: 16px; right: 16px; background: rgba(42,38,34,0.75); }
-#lightbox .flecha.izq { left: 10px; }
-#lightbox .flecha.der { right: 10px; }
-#lightbox .flecha { background: rgba(42,38,34,0.75); }
-#lightbox .dots { bottom: 18px; }
-#lightbox .dots .dot { background: rgba(255,255,255,0.4); }
-#lightbox .dots .dot.activo { background: #fff; }
-
 .login-box {
   background: var(--crema-card);
   border-radius: 14px;
@@ -321,13 +300,38 @@ footer#pieDePagina {
 .btn-secundario { background: transparent; border: 1px solid var(--linea); color: var(--carbon); width: 100%; padding: 10px; }
 
 .fotos-existentes { display: flex; gap: 8px; flex-wrap: wrap; }
-.foto-existente { position: relative; width: 64px; }
-.foto-existente img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--linea); }
-.foto-existente .fila-botones { display: flex; justify-content: center; gap: 3px; margin-top: 3px; }
-.foto-existente .fila-botones button {
-  background: var(--crema); border: 1px solid var(--linea); border-radius: 5px;
-  font-size: 10px; padding: 2px 5px; cursor: pointer; color: var(--carbon);
+.ayuda-arrastre { font-size: 11px; color: var(--carbon-soft); margin: -4px 0 8px; }
+.foto-existente { position: relative; width: 64px; cursor: grab; touch-action: none; }
+.foto-existente img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--linea); pointer-events: none; }
+.foto-existente .agarre { text-align: center; font-size: 11px; color: var(--carbon-soft); line-height: 1; margin-top: 2px; }
+.foto-existente .btn-borrar-foto {
+  position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--carbon); color: var(--crema-card); border: none; font-size: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
+.foto-existente.sortable-ghost { opacity: 0.35; }
+
+/* ---- Tu catálogo: grilla de tarjetas más grandes, arrastrables para reordenar ---- */
+.admin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+@media (min-width: 640px) { .admin-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
+@media (min-width: 980px) { .admin-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.admin-card {
+  background: var(--crema-card); border: 1px solid var(--linea); border-radius: 12px;
+  padding: 10px; display: flex; flex-direction: column; gap: 6px;
+}
+.admin-card.sortable-ghost { opacity: 0.4; }
+.admin-card .mini-foto-grande {
+  width: 100%; aspect-ratio: 1 / 1; border-radius: 9px; background: var(--camel);
+  background-size: cover; background-position: center;
+}
+.admin-drag-handle {
+  text-align: center; font-size: 15px; color: var(--carbon-soft); padding: 2px 0 0;
+  cursor: grab; touch-action: none; letter-spacing: 0.15em;
+}
+.admin-card .li-nombre { font-size: 13.5px; }
+.admin-card .li-precio { font-size: 11.5px; }
+.admin-card .badge-estado { align-self: flex-start; }
 
 .lista-admin-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--linea); flex-wrap: wrap; }
 .lista-admin-item:last-child { border-bottom: none; }
@@ -345,9 +349,11 @@ footer#pieDePagina {
 
 .aviso { font-size: 12px; padding: 8px 10px; border-radius: 6px; background: var(--tan2); color: var(--carbon); margin-top: 8px; }
 
+.btn-vermas { display: block; margin: 20px auto 0; width: 200px; }
+
 </style>
 </head>
-<body class="pre-carga">
+<body>
 
 <header>
   <button id="btnAdminIcono" class="icono-admin" aria-label="Panel de administración" title="Panel de administración">&#9881;</button>
@@ -361,7 +367,7 @@ footer#pieDePagina {
   <main>
     <div class="grid" id="grid"></div>
     <p class="vacio" id="vacio" style="display:none;">Todavía no hay prendas cargadas.</p>
-    <button class="btn-accion btn-secundario" id="btnVerMas" style="display:none; margin:24px auto 0; max-width:220px; width:100%;">Ver más</button>
+    <button class="btn-accion btn-secundario btn-vermas" id="btnVerMas" style="display:none;">Ver más</button>
   </main>
   <footer id="pieDePagina">hecho por Tao · @tao.creando</footer>
 </div>
@@ -408,15 +414,15 @@ footer#pieDePagina {
 
     <div class="campo">
       <label for="cfg_nombre">Nombre de la marca</label>
-      <input type="text" id="cfg_nombre" placeholder="Ej: nombre de tu marca">
+      <input type="text" id="cfg_nombre" placeholder="podriausarlo">
     </div>
     <div class="campo">
       <label for="cfg_tagline">Bajada / tagline</label>
-      <input type="text" id="cfg_tagline" placeholder="Ej: una frase corta que describa tu marca">
+      <input type="text" id="cfg_tagline" placeholder="ropa usada, vintage, excelente estado">
     </div>
     <div class="campo">
-      <label for="cfg_ciudad">Dato extra (opcional)</label>
-      <input type="text" id="cfg_ciudad" placeholder="Ej: tu ciudad, un email, un horario de atención...">
+      <label for="cfg_ciudad">Ciudad</label>
+      <input type="text" id="cfg_ciudad" placeholder="La Plata, Buenos Aires">
     </div>
     <div class="campo">
       <label for="cfg_paleta">Tema (paleta, textura y color del título, todo junto)</label>
@@ -450,7 +456,7 @@ footer#pieDePagina {
 
     <div class="campo">
       <label for="f_nombre">Nombre corto</label>
-      <input type="text" id="f_nombre" placeholder="Ej: Campera talle M">
+      <input type="text" id="f_nombre" placeholder="Tapado vintage 80/90">
     </div>
 
     <div class="fila-doble">
@@ -466,7 +472,7 @@ footer#pieDePagina {
 
     <div class="campo">
       <label for="f_descripcion">Descripción</label>
-      <textarea id="f_descripcion" placeholder="Ej: material, corte, estado del producto, etc."></textarea>
+      <textarea id="f_descripcion" placeholder="Excelente estado, lana gruesa, corte oversize."></textarea>
     </div>
 
     <div class="campo">
@@ -480,7 +486,7 @@ footer#pieDePagina {
     </div>
 
     <div class="campo" id="fotosExistentesCont" style="display:none;">
-      <label>Fotos actuales (podés reordenarlas o sacarlas)</label>
+      <label>Fotos actuales (arrastralas para reordenar, o tocá la ✕ para sacarlas)</label>
       <div id="fotosExistentes" class="fotos-existentes"></div>
     </div>
 
@@ -496,19 +502,22 @@ footer#pieDePagina {
 
   <div class="panel">
     <h2>Tu catálogo</h2>
-    <div id="listaAdmin"></div>
+    <p class="ayuda-arrastre">Mantené presionado el ⠿ de una tarjeta y arrastrala para cambiar el orden en que se ven en la vidriera.</p>
+    <div id="listaAdmin" class="admin-grid"></div>
   </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  initializeFirestore, collection, addDoc, getDocs, getDoc, setDoc, doc, updateDoc, deleteDoc, query, orderBy, limit, startAfter
+  getFirestore, collection, addDoc, getDocs, getDoc, setDoc, doc, updateDoc, deleteDoc, query, orderBy,
+  limit, startAfter, onSnapshot, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut,
   setPersistence, browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import Sortable from "https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/modular/sortable.esm.js";
 
 // ---- CONFIGURACIÓN DEL NEGOCIO: cambiar acá para reusar este sitio con otro rubro ----
 const WHATSAPP = "5492215424321";
@@ -533,18 +542,19 @@ const firebaseConfig = {
   appId: "1:541732226737:web:ee8225b50317e577ccc490"
 };
 const app = initializeApp(firebaseConfig);
-// experimentalAutoDetectLongPolling evita que el SDK intente primero una conexión
-// en tiempo real que en ciertas redes (antivirus, proveedores de internet) tarda
-// muchísimo en negociarse. Como acá solo se hacen lecturas puntuales (getDocs/getDoc),
-// no se pierde ninguna funcionalidad.
-const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+const db = getFirestore(app);
 const auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence).catch(() => {});
 
-let prendas = [];
-const PAGINA_TAM = 12;
+let prendasVidriera = [];   // lo que ve el público, se carga de a tandas
+let prendasAdmin = [];      // catálogo completo, siempre actualizado en vivo para la dueña
+let maxOrden = -1;
+let pageSize = window.innerWidth < 640 ? 6 : 8;
 let ultimoDocVisible = null;
-let hayMasProductos = true;
+let hayMasPrendas = true;
+let unsubscribeAdmin = null;
+let sortableFotos = null;
+let sortableAdmin = null;
 let fotoIndices = {};
 let lightboxPrenda = null;
 let lightboxIdx = 0;
@@ -562,7 +572,7 @@ function formatoPrecio(n) {
   return "$ " + Number(n).toLocaleString("es-AR");
 }
 
-function redimensionarImagen(file, maxWidth = 700, calidad = 0.62) {
+function redimensionarImagen(file, maxWidth = 600, calidad = 0.55) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -628,10 +638,7 @@ async function cargarConfig() {
     if (snap.exists()) configSitio = snap.data();
   } catch (e) { /* todavía no existe, se usan los valores por defecto */ }
   aplicarConfigUI();
-  document.body.classList.remove("pre-carga");
 }
-// Red de seguridad: si por algún motivo la config tarda de más, igual se muestra el sitio
-setTimeout(() => document.body.classList.remove("pre-carga"), 1800);
 
 async function guardarConfiguracion() {
   const logoInput = document.getElementById("cfg_logo");
@@ -667,88 +674,77 @@ async function quitarLogo() {
 
 // ---------- Catálogo (Firestore) ----------
 
-// Las prendas viejas pueden no tener el campo "orden" (se agregó para poder
-// reordenar el catálogo a mano). Si falta, se les asigna automáticamente
-// respetando el orden de creación, una sola vez.
-async function migrarOrdenSiFalta(lista) {
-  const faltantes = lista.filter(p => typeof p.orden !== "number");
-  if (!faltantes.length) return false;
-  const base = [...lista].sort((a, b) => (a.creado || 0) - (b.creado || 0));
-  await Promise.all(base.map((p, i) => updateDoc(doc(db, "prendas", p.id), { orden: i })));
-  base.forEach((p, i) => { p.orden = i; });
-  return true;
+// La primera vez que usamos el campo "orden", las prendas viejas no lo tienen.
+// Esta función lo completa una sola vez, respetando el orden que ya tenían (más nueva primero).
+async function migrarOrdenSiHaceFalta() {
+  const snap = await getDocs(query(collection(db, "prendas"), orderBy("creado", "desc")));
+  const faltan = snap.docs.some(d => d.data().orden === undefined);
+  if (!faltan) return;
+  const batch = writeBatch(db);
+  snap.docs.forEach((d, i) => {
+    if (d.data().orden === undefined) batch.update(d.ref, { orden: i });
+  });
+  await batch.commit();
 }
 
-// Carga TODO el catálogo de una vez. Se usa solo en el panel de administración
-// (para poder ver y reordenar todo), no en la vidriera pública.
-async function cargarCatalogo() {
-  let snap;
-  try {
-    snap = await getDocs(query(collection(db, "prendas"), orderBy("orden", "asc")));
-  } catch (e) {
-    snap = await getDocs(collection(db, "prendas"));
-  }
-  prendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  await migrarOrdenSiFalta(prendas);
-  prendas.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
-  hayMasProductos = false;
-  renderGrid();
-  actualizarBotonVerMas();
-  if (sesionActiva) renderListaAdmin();
+// Catálogo del panel de administración: escucha a Firestore en vivo,
+// así si algo cambia (incluso desde otra pestaña o el celular) se refleja solo, sin recargar la página.
+function iniciarListenerAdmin() {
+  if (unsubscribeAdmin) return;
+  const q = query(collection(db, "prendas"), orderBy("orden", "asc"));
+  unsubscribeAdmin = onSnapshot(q, (snap) => {
+    prendasAdmin = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    maxOrden = prendasAdmin.reduce((m, p) => Math.max(m, p.orden ?? -1), -1);
+    if (sesionActiva && document.getElementById("admin").style.display !== "none") {
+      renderListaAdmin();
+    }
+  });
 }
 
-// Carga la vidriera pública de a tandas (PAGINA_TAM por vez), para que un
-// catálogo grande no tenga que bajar todas las fotos de una sola vez.
-async function cargarPrimeraPagina() {
-  prendas = [];
+function detenerListenerAdmin() {
+  if (unsubscribeAdmin) { unsubscribeAdmin(); unsubscribeAdmin = null; }
+}
+
+// Vidriera pública: trae las prendas de a tandas (pageSize) en vez de todas juntas.
+async function cargarPrimeraPaginaVidriera() {
+  prendasVidriera = [];
   ultimoDocVisible = null;
-  hayMasProductos = true;
+  hayMasPrendas = true;
   const vacio = document.getElementById("vacio");
   vacio.style.display = "block";
   vacio.textContent = "Cargando catálogo...";
-  await cargarMasProductos();
+  await cargarSiguientePaginaVidriera();
 }
 
-async function cargarMasProductos() {
-  let q = query(collection(db, "prendas"), orderBy("orden", "asc"), limit(PAGINA_TAM));
+async function cargarSiguientePaginaVidriera() {
+  const btnVerMas = document.getElementById("btnVerMas");
+  const textoOriginalBoton = btnVerMas.textContent;
+  btnVerMas.textContent = "Cargando...";
+  btnVerMas.disabled = true;
+
+  let q = query(collection(db, "prendas"), orderBy("orden", "asc"), limit(pageSize));
   if (ultimoDocVisible) {
-    q = query(collection(db, "prendas"), orderBy("orden", "asc"), startAfter(ultimoDocVisible), limit(PAGINA_TAM));
+    q = query(collection(db, "prendas"), orderBy("orden", "asc"), startAfter(ultimoDocVisible), limit(pageSize));
   }
   const snap = await getDocs(q);
-  const nuevos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  prendas = prendas.concat(nuevos);
-  if (snap.docs.length) ultimoDocVisible = snap.docs[snap.docs.length - 1];
-  hayMasProductos = nuevos.length === PAGINA_TAM;
+  if (snap.docs.length < pageSize) hayMasPrendas = false;
+  if (snap.docs.length > 0) ultimoDocVisible = snap.docs[snap.docs.length - 1];
+  prendasVidriera = prendasVidriera.concat(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+
   renderGrid();
-  actualizarBotonVerMas();
+  btnVerMas.textContent = textoOriginalBoton;
+  btnVerMas.disabled = false;
+  btnVerMas.style.display = hayMasPrendas ? "block" : "none";
 }
 
-function actualizarBotonVerMas() {
-  const btn = document.getElementById("btnVerMas");
-  btn.style.display = hayMasProductos && prendas.length > 0 ? "block" : "none";
-}
-
-async function moverPrenda(id, direccion) {
-  const idx = prendas.findIndex(p => p.id === id);
-  const otroIdx = direccion === "subir" ? idx - 1 : idx + 1;
-  if (idx === -1 || otroIdx < 0 || otroIdx >= prendas.length) return;
-  const a = prendas[idx], b = prendas[otroIdx];
-  const ordenA = a.orden ?? 0, ordenB = b.orden ?? 0;
-  try {
-    await updateDoc(doc(db, "prendas", a.id), { orden: ordenB });
-    await updateDoc(doc(db, "prendas", b.id), { orden: ordenA });
-    await cargarCatalogo();
-  } catch (e) {
-    alert("No se pudo reordenar: " + (e.message || "revisá la conexión."));
-  }
-}
+const OBSERVACIONES_POR_DEFECTO = "Efectivo | Transferencia";
 
 function limpiarFormPrenda() {
   document.getElementById("f_nombre").value = "";
   document.getElementById("f_precio").value = "";
   document.getElementById("f_talle").value = "";
   document.getElementById("f_descripcion").value = "";
-  document.getElementById("f_observaciones").value = "";
+  document.getElementById("f_observaciones").value = OBSERVACIONES_POR_DEFECTO;
   document.getElementById("f_reel").value = "";
   document.getElementById("f_foto").value = "";
 }
@@ -758,33 +754,37 @@ function renderFotosExistentes() {
   const contWrap = document.getElementById("fotosExistentesCont");
   contWrap.style.display = fotosEnEdicion.length ? "block" : "none";
   cont.innerHTML = fotosEnEdicion.map((foto, i) => `
-    <div class="foto-existente">
+    <div class="foto-existente" data-idx="${i}">
+      <button class="btn-borrar-foto" data-idx="${i}" type="button">&#10005;</button>
       <img src="${foto}" alt="">
-      <div class="fila-botones">
-        <button data-idx="${i}" data-accion="izq" ${i === 0 ? "disabled" : ""}>&#8249;</button>
-        <button data-idx="${i}" data-accion="borrar">&#10005;</button>
-        <button data-idx="${i}" data-accion="der" ${i === fotosEnEdicion.length - 1 ? "disabled" : ""}>&#8250;</button>
-      </div>
+      <div class="agarre">⠿</div>
     </div>
   `).join("");
-  cont.querySelectorAll("button").forEach(b => {
+
+  cont.querySelectorAll(".btn-borrar-foto").forEach(b => {
     b.addEventListener("click", () => {
-      const i = Number(b.dataset.idx);
-      if (b.dataset.accion === "izq" && i > 0) { [fotosEnEdicion[i - 1], fotosEnEdicion[i]] = [fotosEnEdicion[i], fotosEnEdicion[i - 1]]; }
-      if (b.dataset.accion === "der" && i < fotosEnEdicion.length - 1) { [fotosEnEdicion[i + 1], fotosEnEdicion[i]] = [fotosEnEdicion[i], fotosEnEdicion[i + 1]]; }
-      if (b.dataset.accion === "borrar") { fotosEnEdicion.splice(i, 1); }
+      fotosEnEdicion.splice(Number(b.dataset.idx), 1);
       renderFotosExistentes();
     });
+  });
+
+  if (sortableFotos) sortableFotos.destroy();
+  sortableFotos = new Sortable(cont, {
+    animation: 150,
+    ghostClass: "sortable-ghost",
+    onEnd: (evt) => {
+      const [movida] = fotosEnEdicion.splice(evt.oldIndex, 1);
+      fotosEnEdicion.splice(evt.newIndex, 0, movida);
+      renderFotosExistentes();
+    }
   });
 }
 
 function editarPrenda(id) {
-  const p = prendas.find(x => x.id === id);
+  const p = prendasAdmin.find(x => x.id === id);
   if (!p) return;
   editandoId = id;
-  // Por si alguna prenda quedó guardada con el formato {thumb, full} durante las pruebas,
-  // se recupera la versión de mejor calidad y se vuelve al formato de una sola foto por versión.
-  fotosEnEdicion = (p.fotos || []).map(f => typeof f === "string" ? f : (f.full || f.thumb));
+  fotosEnEdicion = [...(p.fotos || [])];
 
   document.getElementById("f_nombre").value = p.nombre || "";
   document.getElementById("f_precio").value = p.precio || "";
@@ -833,72 +833,44 @@ async function guardarPrenda() {
   aviso.style.display = "block";
   aviso.textContent = "Guardando...";
 
-  try {
-    let nuevasFotos = [];
-    if (fotoInput.files && fotoInput.files.length) {
-      nuevasFotos = await Promise.all(Array.from(fotoInput.files).map(f => redimensionarImagen(f, 700, 0.62)));
-    }
-    const fotosFinal = [...fotosEnEdicion, ...nuevasFotos].slice(0, 4);
-
-    // Firestore no permite documentos de más de 1MB. Esto solo debería avisar
-    // en casos extremos (fotos excepcionalmente pesadas), no en el uso normal.
-    const pesoFotosKB = Math.round(
-      fotosFinal.reduce((acc, f) => acc + (typeof f === "string" ? f.length : 0), 0) / 1024
-    );
-    if (pesoFotosKB > 900) {
-      aviso.textContent = `Las fotos pesan demasiado (~${pesoFotosKB}KB) y Firestore podría rechazar el guardado. Probá con menos fotos o fotos más simples/livianas.`;
-      return;
-    }
-
-    const datos = { nombre, precio: Number(precio), talle, descripcion, observaciones, fotos: fotosFinal, reel };
-
-    if (editandoId) {
-      await updateDoc(doc(db, "prendas", editandoId), datos);
-      aviso.textContent = "Cambios guardados.";
-    } else {
-      const ordenNuevo = prendas.length ? Math.max(...prendas.map(p => p.orden ?? 0)) + 1 : 0;
-      await addDoc(collection(db, "prendas"), { ...datos, vendido: false, creado: Date.now(), orden: ordenNuevo });
-      aviso.textContent = "Prenda guardada.";
-    }
-
-    cancelarEdicion();
-    await cargarCatalogo();
-  } catch (e) {
-    aviso.textContent = "No se pudo guardar: " + (e.message || "revisá la conexión e intentá de nuevo.");
+  let nuevasFotos = [];
+  if (fotoInput.files && fotoInput.files.length) {
+    nuevasFotos = await Promise.all(Array.from(fotoInput.files).map(f => redimensionarImagen(f)));
   }
+  const fotosFinal = [...fotosEnEdicion, ...nuevasFotos].slice(0, 4);
+  const datos = { nombre, precio: Number(precio), talle, descripcion, observaciones, fotos: fotosFinal, reel };
+
+  if (editandoId) {
+    await updateDoc(doc(db, "prendas", editandoId), datos);
+    aviso.textContent = "Cambios guardados.";
+  } else {
+    maxOrden += 1;
+    await addDoc(collection(db, "prendas"), { ...datos, vendido: false, creado: Date.now(), orden: maxOrden });
+    aviso.textContent = "Prenda guardada.";
+  }
+
+  // No hace falta recargar a mano: el listener en vivo actualiza "Tu catálogo" solo.
+  cancelarEdicion();
 }
 
 async function toggleVendido(id) {
-  const p = prendas.find(x => x.id === id);
+  const p = prendasAdmin.find(x => x.id === id);
   if (!p) return;
-  try {
-    await updateDoc(doc(db, "prendas", id), { vendido: !p.vendido });
-    await cargarCatalogo();
-  } catch (e) {
-    alert("No se pudo actualizar: " + (e.message || "revisá la conexión."));
-  }
+  await updateDoc(doc(db, "prendas", id), { vendido: !p.vendido });
 }
 
 async function eliminarPrenda(id) {
   if (!confirm("¿Eliminar esta prenda? No se puede deshacer.")) return;
   if (editandoId === id) cancelarEdicion();
-  try {
-    await deleteDoc(doc(db, "prendas", id));
-    await cargarCatalogo();
-  } catch (e) {
-    alert("No se pudo eliminar: " + (e.message || "revisá la conexión."));
-  }
+  await deleteDoc(doc(db, "prendas", id));
 }
 
 // ---------- Render vidriera ----------
-function fotoThumb(foto) { return typeof foto === "string" ? foto : foto.thumb; }
-function fotoFull(foto) { return typeof foto === "string" ? foto : foto.full; }
-
 function cardFotoHTML(p) {
   const fotos = p.fotos || [];
   if (fotos.length === 0) return iconoPercha();
   const idx = (fotoIndices[p.id] || 0) % fotos.length;
-  let html = `<img src="${fotoThumb(fotos[idx])}" alt="${p.nombre}" loading="lazy">`;
+  let html = `<img src="${fotos[idx]}" alt="${p.nombre}" loading="lazy">`;
   if (fotos.length > 1) {
     html += `<div class="dots">` + fotos.map((_, i) => `<span class="dot ${i === idx ? 'activo' : ''}"></span>`).join("") + `</div>`;
   }
@@ -908,14 +880,14 @@ function cardFotoHTML(p) {
 function renderGrid() {
   const grid = document.getElementById("grid");
   const vacio = document.getElementById("vacio");
-  if (prendas.length === 0) {
+  if (prendasVidriera.length === 0) {
     grid.innerHTML = "";
     vacio.style.display = "block";
     vacio.textContent = "Todavía no hay prendas cargadas.";
     return;
   }
   vacio.style.display = "none";
-  grid.innerHTML = prendas.map(p => `
+  grid.innerHTML = prendasVidriera.map(p => `
     <div class="card ${p.vendido ? 'vendido' : ''}">
       <div class="photo" data-id="${p.id}">
         ${cardFotoHTML(p)}
@@ -929,7 +901,7 @@ function renderGrid() {
         ${p.observaciones ? `<p class="obs">${p.observaciones}</p>` : ''}
         <div class="acciones">
           ${p.reel ? `<a class="btn" href="${p.reel}" target="_blank">Ver en IG</a>` : ''}
-          <a class="btn whatsapp" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent(MENSAJE_WHATSAPP(p.nombre))}" target="_blank">Consultar</a>
+          <a class="btn whatsapp" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent(MENSAJE_WHATSAPP(p.nombre))}" target="_blank">¡Lo quiero!</a>
         </div>
       </div>
     </div>
@@ -942,21 +914,18 @@ function renderGrid() {
 
 function renderListaAdmin() {
   const cont = document.getElementById("listaAdmin");
-  if (prendas.length === 0) {
+  if (prendasAdmin.length === 0) {
     cont.innerHTML = '<p style="font-size:13px; color:var(--carbon-soft);">Todavía no cargaste ninguna prenda.</p>';
     return;
   }
-  cont.innerHTML = prendas.map((p, i) => `
-    <div class="lista-admin-item">
-      <div class="mini-foto" style="background-image:url('${p.fotos && p.fotos[0] ? fotoThumb(p.fotos[0]) : ''}')"></div>
-      <div class="lista-admin-info">
-        <p class="li-nombre">${p.nombre}</p>
-        <p class="li-precio">${formatoPrecio(p.precio)} · talle ${p.talle}</p>
-      </div>
+  cont.innerHTML = prendasAdmin.map(p => `
+    <div class="admin-card" data-id="${p.id}">
+      <div class="admin-drag-handle">⠿</div>
+      <div class="mini-foto-grande" style="background-image:url('${(p.fotos && p.fotos[0]) || ''}')"></div>
+      <p class="li-nombre">${p.nombre}</p>
+      <p class="li-precio">${formatoPrecio(p.precio)} · talle ${p.talle}</p>
       <span class="badge-estado ${p.vendido ? 'vendido' : ''}">${p.vendido ? 'vendido' : 'disponible'}</span>
       <div class="li-botones">
-        <button data-accion="subir" data-id="${p.id}" ${i === 0 ? "disabled" : ""} title="Mover arriba">&#8593;</button>
-        <button data-accion="bajar" data-id="${p.id}" ${i === prendas.length - 1 ? "disabled" : ""} title="Mover abajo">&#8595;</button>
         <button data-accion="editar" data-id="${p.id}">Editar</button>
         <button data-accion="toggle" data-id="${p.id}">${p.vendido ? 'Reactivar' : 'Marcar vendido'}</button>
         <button data-accion="eliminar" data-id="${p.id}">Eliminar</button>
@@ -964,11 +933,23 @@ function renderListaAdmin() {
     </div>
   `).join("");
 
-  cont.querySelectorAll("[data-accion='subir']").forEach(b => b.addEventListener("click", () => moverPrenda(b.dataset.id, "subir")));
-  cont.querySelectorAll("[data-accion='bajar']").forEach(b => b.addEventListener("click", () => moverPrenda(b.dataset.id, "bajar")));
   cont.querySelectorAll("[data-accion='editar']").forEach(b => b.addEventListener("click", () => editarPrenda(b.dataset.id)));
   cont.querySelectorAll("[data-accion='toggle']").forEach(b => b.addEventListener("click", () => toggleVendido(b.dataset.id)));
   cont.querySelectorAll("[data-accion='eliminar']").forEach(b => b.addEventListener("click", () => eliminarPrenda(b.dataset.id)));
+
+  if (sortableAdmin) sortableAdmin.destroy();
+  sortableAdmin = new Sortable(cont, {
+    animation: 150,
+    handle: ".admin-drag-handle",
+    ghostClass: "sortable-ghost",
+    onEnd: async () => {
+      const idsEnOrden = Array.from(cont.querySelectorAll(".admin-card")).map(el => el.dataset.id);
+      const batch = writeBatch(db);
+      idsEnOrden.forEach((id, i) => batch.update(doc(db, "prendas", id), { orden: i }));
+      await batch.commit();
+      // El listener en vivo va a volver a renderizar con el nuevo orden confirmado.
+    }
+  });
 }
 
 // ---------- Lightbox: deslizar entre fotos + pellizcar para hacer zoom ----------
@@ -993,7 +974,7 @@ function distanciaEntreDedos(touches) {
 }
 
 function abrirLightbox(id) {
-  const p = prendas.find(x => x.id === id);
+  const p = prendasVidriera.find(x => x.id === id);
   if (!p || !p.fotos || p.fotos.length === 0) return;
   lightboxPrenda = p;
   lightboxIdx = fotoIndices[id] || 0;
@@ -1006,7 +987,7 @@ function renderLightbox() {
   if (!lightboxPrenda) return;
   const fotos = lightboxPrenda.fotos;
   lightboxIdx = (lightboxIdx + fotos.length) % fotos.length;
-  document.getElementById("lightboxImg").src = fotoFull(fotos[lightboxIdx]);
+  document.getElementById("lightboxImg").src = fotos[lightboxIdx];
   const dotsCont = document.getElementById("lightboxDots");
   dotsCont.innerHTML = fotos.length > 1
     ? fotos.map((_, i) => `<span class="dot ${i === lightboxIdx ? 'activo' : ''}"></span>`).join("")
@@ -1111,19 +1092,27 @@ async function recuperarPass() {
   }
 }
 
-async function mostrarAdmin() {
+function mostrarAdmin() {
   document.getElementById("vidriera").style.display = "none";
   document.getElementById("admin").style.display = "block";
-  await cargarCatalogo();
+  renderListaAdmin();
 }
 
 function mostrarVidriera() {
   document.getElementById("admin").style.display = "none";
   document.getElementById("vidriera").style.display = "block";
+  // Volvemos a traer la primera tanda por si algo cambió mientras estabas en el panel.
+  cargarPrimeraPaginaVidriera();
 }
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   sesionActiva = !!user;
+  if (user) {
+    await migrarOrdenSiHaceFalta();
+    iniciarListenerAdmin();
+  } else {
+    detenerListenerAdmin();
+  }
 });
 
 // ---------- Conexión de botones ----------
@@ -1140,12 +1129,11 @@ document.getElementById("btnGuardarConfig").addEventListener("click", guardarCon
 document.getElementById("btnQuitarLogo").addEventListener("click", quitarLogo);
 document.getElementById("btnVerVidriera").addEventListener("click", mostrarVidriera);
 document.getElementById("btnCerrarSesion").addEventListener("click", () => { signOut(auth); mostrarVidriera(); });
-
-document.getElementById("btnVerMas").addEventListener("click", cargarMasProductos);
+document.getElementById("btnVerMas").addEventListener("click", cargarSiguientePaginaVidriera);
 
 initGestosLightbox();
 cargarConfig();
-cargarPrimeraPagina();
+cargarPrimeraPaginaVidriera();
 
 </script>
 </body>
