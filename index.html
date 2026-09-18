@@ -500,6 +500,15 @@ footer#pieDePagina {
     <div class="aviso" id="avisoGuardado" style="display:none;"></div>
   </div>
 
+  <div class="panel" id="panelOptimizar" style="display:none;">
+    <h2>Optimizar fotos</h2>
+    <p class="ayuda-arrastre" id="txtPendientes"></p>
+    <p class="ayuda-arrastre">Achica las fotos para que la vidriera abra rápido. Probá primero con una prenda y mirala en la vidriera antes de hacer todas.</p>
+    <button class="btn-accion btn-secundario" id="btnProbarOptimizar">Probar con una prenda</button>
+    <button class="btn-accion btn-guardar" id="btnOptimizarTodas">Optimizar todas</button>
+    <div class="aviso" id="avisoOptimizar" style="display:none;"></div>
+  </div>
+
   <div class="panel">
     <h2>Tu catálogo</h2>
     <p class="ayuda-arrastre">Mantené presionado el ⠿ de una tarjeta y arrastrala para cambiar el orden en que se ven en la vidriera.</p>
@@ -510,14 +519,19 @@ footer#pieDePagina {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, getDocs, getDoc, setDoc, doc, updateDoc, deleteDoc, query, orderBy,
-  limit, startAfter, onSnapshot, writeBatch
+  initializeFirestore, collection, addDoc, getDocs, getDoc, setDoc, doc, updateDoc, deleteDoc, query, orderBy,
+  limit, startAfter, onSnapshot, writeBatch, deleteField
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut,
   setPersistence, browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import Sortable from "https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/modular/sortable.esm.js";
+// SortableJS (arrastrar para ordenar) solo lo usa la dueña en el panel:
+// se descarga recién al entrar al panel, así la vidriera abre más liviana para las clientas.
+let Sortable = null;
+async function cargarSortable() {
+  if (!Sortable) Sortable = (await import("https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/modular/sortable.esm.js")).default;
+}
 
 // ---- CONFIGURACIÓN DEL NEGOCIO: cambiar acá para reusar este sitio con otro rubro ----
 const WHATSAPP = "5492215424321";
@@ -542,7 +556,8 @@ const firebaseConfig = {
   appId: "1:541732226737:web:ee8225b50317e577ccc490"
 };
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Long polling: evita que la conexión con Firestore se cuelgue en algunas redes (antes tardaba más de un minuto o no cargaba).
+const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
 const auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence).catch(() => {});
 
@@ -555,7 +570,8 @@ let hayMasPrendas = true;
 let unsubscribeAdmin = null;
 let sortableFotos = null;
 let sortableAdmin = null;
-let fotoIndices = {};
+let lightboxFotos = [];
+let fotosExtraCache = {};  // fotos extra ya descargadas, para no pedirlas dos veces
 let lightboxPrenda = null;
 let lightboxIdx = 0;
 let sesionActiva = false;
@@ -572,25 +588,70 @@ function formatoPrecio(n) {
   return "$ " + Number(n).toLocaleString("es-AR");
 }
 
-function redimensionarImagen(file, maxWidth = 600, calidad = 0.55) {
+function leerArchivo(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
-        const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", calidad));
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
+    reader.onload = (e) => resolve(e.target.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+// Achica una foto (archivo nuevo o foto ya guardada).
+// Fotos de prendas: 500px de ancho; usa WebP si el celu lo permite y pesa menos, si no JPG.
+async function redimensionarImagen(origen, maxWidth = 500, calidad = 0.6, liviano = true) {
+  const src = typeof origen === "string" ? origen : await leerArchivo(origen);
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = reject;
+    i.src = src;
+  });
+  let w = img.naturalWidth, h = img.naturalHeight;
+  if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+  const jpg = canvas.toDataURL("image/jpeg", calidad);
+  if (!liviano) return jpg;
+  const webp = canvas.toDataURL("image/webp", calidad);
+  return (webp.startsWith("data:image/webp") && webp.length < jpg.length) ? webp : jpg;
+}
+
+// ---------- Fotos: la principal va con la prenda, las demás aparte (colección fotosExtra) ----------
+// Las prendas viejas (sin optimizar) todavía tienen todas sus fotos en el campo "fotos": se siguen mostrando igual.
+function fotoPrincipalDe(p) {
+  return p.fotoPrincipal || (p.fotos && p.fotos[0]) || null;
+}
+
+function cantidadFotos(p) {
+  if (typeof p.cantFotos === "number") return p.cantFotos;
+  return (p.fotos || []).length;
+}
+
+async function obtenerTodasLasFotos(p) {
+  if (!p.optimizada) return [...(p.fotos || [])];
+  if (!p.fotoPrincipal) return [];
+  if (cantidadFotos(p) <= 1) return [p.fotoPrincipal];
+  if (!fotosExtraCache[p.id]) {
+    const snap = await getDoc(doc(db, "fotosExtra", p.id));
+    fotosExtraCache[p.id] = snap.exists() ? (snap.data().fotos || []) : [];
+  }
+  return [p.fotoPrincipal, ...fotosExtraCache[p.id]];
+}
+
+// Guarda la prenda con la nueva estructura (principal + extras aparte), todo junto en un solo paso.
+function escribirPrendaConFotos(batch, id, datos, fotos) {
+  const [principal = null, ...extras] = fotos;
+  batch.set(doc(db, "prendas", id), {
+    ...datos,
+    fotoPrincipal: principal,
+    cantFotos: fotos.length,
+    optimizada: true,
+    fotos: deleteField()
+  }, { merge: true });
+  batch.set(doc(db, "fotosExtra", id), { fotos: extras });
+  fotosExtraCache[id] = extras;
 }
 
 // ---------- Configuración del sitio ----------
@@ -644,7 +705,7 @@ async function guardarConfiguracion() {
   const logoInput = document.getElementById("cfg_logo");
   let logoBase64 = configSitio.logo || null;
   if (logoInput.files && logoInput.files[0]) {
-    logoBase64 = await redimensionarImagen(logoInput.files[0], 400, 0.8);
+    logoBase64 = await redimensionarImagen(logoInput.files[0], 400, 0.8, false);
   }
 
   configSitio = {
@@ -780,11 +841,16 @@ function renderFotosExistentes() {
   });
 }
 
-function editarPrenda(id) {
+async function editarPrenda(id) {
   const p = prendasAdmin.find(x => x.id === id);
   if (!p) return;
   editandoId = id;
-  fotosEnEdicion = [...(p.fotos || [])];
+  const aviso = document.getElementById("avisoGuardado");
+  aviso.style.display = "block";
+  aviso.textContent = "Cargando fotos...";
+  await cargarSortable();
+  fotosEnEdicion = await obtenerTodasLasFotos(p);
+  aviso.style.display = "none";
 
   document.getElementById("f_nombre").value = p.nombre || "";
   document.getElementById("f_precio").value = p.precio || "";
@@ -833,20 +899,38 @@ async function guardarPrenda() {
   aviso.style.display = "block";
   aviso.textContent = "Guardando...";
 
-  let nuevasFotos = [];
-  if (fotoInput.files && fotoInput.files.length) {
-    nuevasFotos = await Promise.all(Array.from(fotoInput.files).map(f => redimensionarImagen(f)));
-  }
-  const fotosFinal = [...fotosEnEdicion, ...nuevasFotos].slice(0, 4);
-  const datos = { nombre, precio: Number(precio), talle, descripcion, observaciones, fotos: fotosFinal, reel };
+  try {
+    let nuevasFotos = [];
+    if (fotoInput.files && fotoInput.files.length) {
+      nuevasFotos = await Promise.all(Array.from(fotoInput.files).map(f => redimensionarImagen(f)));
+    }
+    // Si la prenda que se edita todavía no estaba optimizada, sus fotos se achican ahora.
+    let existentes = fotosEnEdicion;
+    const previa = editandoId ? prendasAdmin.find(x => x.id === editandoId) : null;
+    if (previa && !previa.optimizada) {
+      existentes = await Promise.all(fotosEnEdicion.map(async (f) => {
+        const chica = await redimensionarImagen(f);
+        return chica.length < f.length ? chica : f;
+      }));
+    }
+    const fotosFinal = [...existentes, ...nuevasFotos].slice(0, 4);
+    const datos = { nombre, precio: Number(precio), talle, descripcion, observaciones, reel };
 
-  if (editandoId) {
-    await updateDoc(doc(db, "prendas", editandoId), datos);
-    aviso.textContent = "Cambios guardados.";
-  } else {
-    maxOrden += 1;
-    await addDoc(collection(db, "prendas"), { ...datos, vendido: false, creado: Date.now(), orden: maxOrden });
-    aviso.textContent = "Prenda guardada.";
+    const batch = writeBatch(db);
+    if (editandoId) {
+      escribirPrendaConFotos(batch, editandoId, datos, fotosFinal);
+      await batch.commit();
+      aviso.textContent = "Cambios guardados.";
+    } else {
+      const nuevoId = doc(collection(db, "prendas")).id;
+      maxOrden += 1;
+      escribirPrendaConFotos(batch, nuevoId, { ...datos, vendido: false, creado: Date.now(), orden: maxOrden }, fotosFinal);
+      await batch.commit();
+      aviso.textContent = "Prenda guardada.";
+    }
+  } catch (e) {
+    aviso.textContent = "No se pudo guardar. Revisá la conexión y probá de nuevo.";
+    return;
   }
 
   // No hace falta recargar a mano: el listener en vivo actualiza "Tu catálogo" solo.
@@ -862,17 +946,21 @@ async function toggleVendido(id) {
 async function eliminarPrenda(id) {
   if (!confirm("¿Eliminar esta prenda? No se puede deshacer.")) return;
   if (editandoId === id) cancelarEdicion();
-  await deleteDoc(doc(db, "prendas", id));
+  const batch = writeBatch(db);
+  batch.delete(doc(db, "prendas", id));
+  batch.delete(doc(db, "fotosExtra", id));
+  await batch.commit();
+  delete fotosExtraCache[id];
 }
 
 // ---------- Render vidriera ----------
 function cardFotoHTML(p) {
-  const fotos = p.fotos || [];
-  if (fotos.length === 0) return iconoPercha();
-  const idx = (fotoIndices[p.id] || 0) % fotos.length;
-  let html = `<img src="${fotos[idx]}" alt="${p.nombre}" loading="lazy">`;
-  if (fotos.length > 1) {
-    html += `<div class="dots">` + fotos.map((_, i) => `<span class="dot ${i === idx ? 'activo' : ''}"></span>`).join("") + `</div>`;
+  const principal = fotoPrincipalDe(p);
+  if (!principal) return iconoPercha();
+  const cant = cantidadFotos(p);
+  let html = `<img src="${principal}" alt="${p.nombre}">`;
+  if (cant > 1) {
+    html += `<div class="dots">` + Array.from({ length: cant }, (_, i) => `<span class="dot ${i === 0 ? 'activo' : ''}"></span>`).join("") + `</div>`;
   }
   return html;
 }
@@ -912,7 +1000,64 @@ function renderGrid() {
   });
 }
 
+function renderOptimizador() {
+  const pendientes = prendasAdmin.filter(p => !p.optimizada).length;
+  const panel = document.getElementById("panelOptimizar");
+  if (optimizando) return;
+  if (pendientes === 0) { panel.style.display = "none"; return; }
+  panel.style.display = "block";
+  document.getElementById("txtPendientes").textContent =
+    `Hay ${pendientes} ${pendientes === 1 ? "prenda" : "prendas"} con fotos pesadas, que hacen que la vidriera tarde en abrir.`;
+}
+
+let optimizando = false;
+
+async function optimizarUna(p) {
+  const originales = [...(p.fotos || [])];
+  const chicas = await Promise.all(originales.map(async (f) => {
+    const chica = await redimensionarImagen(f);
+    return chica.length < f.length ? chica : f;
+  }));
+  const batch = writeBatch(db);
+  escribirPrendaConFotos(batch, p.id, {}, chicas);
+  await batch.commit();
+}
+
+async function optimizarFotos(soloUna) {
+  if (optimizando) return;
+  const pendientes = prendasAdmin.filter(p => !p.optimizada);
+  if (pendientes.length === 0) return;
+  const aviso = document.getElementById("avisoOptimizar");
+  const lista = soloUna ? pendientes.slice(0, 1) : pendientes;
+  optimizando = true;
+  document.getElementById("btnProbarOptimizar").disabled = true;
+  document.getElementById("btnOptimizarTodas").disabled = true;
+  aviso.style.display = "block";
+  let hechas = 0;
+  try {
+    for (const p of lista) {
+      aviso.textContent = `Optimizando ${hechas + 1} de ${lista.length}... no cierres la página.`;
+      await optimizarUna(p);
+      hechas += 1;
+    }
+    aviso.textContent = soloUna
+      ? `Listo: optimicé "${lista[0].nombre}". Mirala en la vidriera (fotos y zoom). Si te gusta cómo quedó, tocá "Optimizar todas".`
+      : `Listo: optimicé ${hechas} ${hechas === 1 ? "prenda" : "prendas"}.`;
+  } catch (e) {
+    aviso.textContent = `Se cortó después de ${hechas}. Las que ya estaban hechas quedaron bien. Tocá de nuevo para seguir.`;
+  }
+  optimizando = false;
+  document.getElementById("btnProbarOptimizar").disabled = false;
+  document.getElementById("btnOptimizarTodas").disabled = false;
+  if (prendasAdmin.filter(p => !p.optimizada).length === 0 && !soloUna) {
+    document.getElementById("txtPendientes").textContent = "Todas las fotos están optimizadas.";
+    document.getElementById("btnProbarOptimizar").style.display = "none";
+    document.getElementById("btnOptimizarTodas").style.display = "none";
+  }
+}
+
 function renderListaAdmin() {
+  renderOptimizador();
   const cont = document.getElementById("listaAdmin");
   if (prendasAdmin.length === 0) {
     cont.innerHTML = '<p style="font-size:13px; color:var(--carbon-soft);">Todavía no cargaste ninguna prenda.</p>';
@@ -921,7 +1066,7 @@ function renderListaAdmin() {
   cont.innerHTML = prendasAdmin.map(p => `
     <div class="admin-card" data-id="${p.id}">
       <div class="admin-drag-handle">⠿</div>
-      <div class="mini-foto-grande" style="background-image:url('${(p.fotos && p.fotos[0]) || ''}')"></div>
+      <div class="mini-foto-grande" style="background-image:url('${fotoPrincipalDe(p) || ''}')"></div>
       <p class="li-nombre">${p.nombre}</p>
       <p class="li-precio">${formatoPrecio(p.precio)} · talle ${p.talle}</p>
       <span class="badge-estado ${p.vendido ? 'vendido' : ''}">${p.vendido ? 'vendido' : 'disponible'}</span>
@@ -973,19 +1118,26 @@ function distanciaEntreDedos(touches) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-function abrirLightbox(id) {
+async function abrirLightbox(id) {
   const p = prendasVidriera.find(x => x.id === id);
-  if (!p || !p.fotos || p.fotos.length === 0) return;
+  if (!p || !fotoPrincipalDe(p)) return;
   lightboxPrenda = p;
-  lightboxIdx = fotoIndices[id] || 0;
+  lightboxFotos = [fotoPrincipalDe(p)];
+  lightboxIdx = 0;
   resetZoomImg();
   document.getElementById("lightbox").style.display = "flex";
   renderLightbox();
+  if (cantidadFotos(p) > 1) {
+    try {
+      const todas = await obtenerTodasLasFotos(p);
+      if (lightboxPrenda === p) { lightboxFotos = todas; renderLightbox(); }
+    } catch (e) { /* si falla, queda la foto principal */ }
+  }
 }
 
 function renderLightbox() {
   if (!lightboxPrenda) return;
-  const fotos = lightboxPrenda.fotos;
+  const fotos = lightboxFotos;
   lightboxIdx = (lightboxIdx + fotos.length) % fotos.length;
   document.getElementById("lightboxImg").src = fotos[lightboxIdx];
   const dotsCont = document.getElementById("lightboxDots");
@@ -998,8 +1150,8 @@ function renderLightbox() {
 
 function cerrarLightbox() {
   document.getElementById("lightbox").style.display = "none";
-  if (lightboxPrenda) fotoIndices[lightboxPrenda.id] = lightboxIdx;
   lightboxPrenda = null;
+  lightboxFotos = [];
   resetZoomImg();
 }
 
@@ -1092,9 +1244,10 @@ async function recuperarPass() {
   }
 }
 
-function mostrarAdmin() {
+async function mostrarAdmin() {
   document.getElementById("vidriera").style.display = "none";
   document.getElementById("admin").style.display = "block";
+  await cargarSortable();
   renderListaAdmin();
 }
 
@@ -1130,6 +1283,10 @@ document.getElementById("btnQuitarLogo").addEventListener("click", quitarLogo);
 document.getElementById("btnVerVidriera").addEventListener("click", mostrarVidriera);
 document.getElementById("btnCerrarSesion").addEventListener("click", () => { signOut(auth); mostrarVidriera(); });
 document.getElementById("btnVerMas").addEventListener("click", cargarSiguientePaginaVidriera);
+document.getElementById("btnProbarOptimizar").addEventListener("click", () => optimizarFotos(true));
+document.getElementById("btnOptimizarTodas").addEventListener("click", () => {
+  if (confirm("Se van a achicar las fotos de todas las prendas. No se puede deshacer. ¿Seguimos?")) optimizarFotos(false);
+});
 
 initGestosLightbox();
 cargarConfig();
